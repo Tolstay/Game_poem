@@ -10,8 +10,8 @@ extends Node2D
 @export var length_randomness: float = 0.8  # 长度随机化频率 (0.0=固定长度, 1.0=完全随机)
 @export var line_width: float = 3.0
 @export var line_color: Color = Color(0.6, 0.4, 0.2, 1.0)
-@export var min_angle_degrees: float = 45.0  # 最小分支角度（度）
-@export var max_angle_degrees: float = 135.0  # 最大分支角度（度）
+@export var min_angle_degrees: float = 30.0  # 最小分支角度（度）
+@export var max_angle_degrees: float = 85.0  # 最大分支角度（度）
 @export var min_branch_separation_degrees: float = 60.0  # 同一生成点的分支之间最小角度（度）
 @export var trunk_point_radius: float = 60.0  # trunk点的碰撞半径
 
@@ -35,9 +35,11 @@ func _generate_branches_from_available_points(fruits_controller):
 	var point_positions = fruits_controller.point_positions
 	var point_states = fruits_controller.point_states
 	var point_directions = fruits_controller.point_directions  # 获取每个点的原始方向
+	var point_types = fruits_controller.point_types  # 获取每个点的类型
 	
 	for i in range(point_positions.size()):
-		if point_states[i] > 0:  # 只处理还有生成次数的点
+		# 只处理TRUNK_POINT类型且还有生成次数的点
+		if point_states[i] > 0 and point_types[i] == fruits_controller.PointType.TRUNK_POINT:
 			var original_direction = Vector2.ZERO
 			if i < point_directions.size():
 				original_direction = point_directions[i]
@@ -46,10 +48,10 @@ func _generate_branches_from_available_points(fruits_controller):
 			var existing_branches = fruits_controller.get_point_generated_branches(i)
 			
 			# 尝试生成分支，如果成功则标记该点并记录分支方向
-			var new_direction = _generate_single_branch(point_positions[i], fruits_controller, original_direction, existing_branches)
-			if new_direction != Vector2.ZERO:
+			var generation_result = _generate_single_branch(point_positions[i], fruits_controller, original_direction, existing_branches, i)
+			if generation_result.success:
 				fruits_controller._mark_point_used(i)
-				fruits_controller._record_generated_branch(i, new_direction)
+				fruits_controller._record_generated_branch(i, generation_result.direction)
 			else:
 				# 无法生成有效路径，设置为无空间状态
 				fruits_controller.set_point_no_space(i)
@@ -57,8 +59,8 @@ func _generate_branches_from_available_points(fruits_controller):
 	# 更新所有点的颜色显示
 	fruits_controller.update_all_point_colors()
 
-## 生成单条分支，返回生成的方向（Vector2.ZERO表示失败）
-func _generate_single_branch(start_pos: Vector2, fruits_controller, original_direction: Vector2, existing_branches: Array) -> Vector2:
+## 生成单条分支，返回生成结果
+func _generate_single_branch(start_pos: Vector2, fruits_controller, original_direction: Vector2, existing_branches: Array, start_point_index: int) -> Dictionary:
 	var max_attempts = 30  # 增加尝试次数，因为现在有更多角度限制
 	var attempt = 0
 	
@@ -75,19 +77,23 @@ func _generate_single_branch(start_pos: Vector2, fruits_controller, original_dir
 			if not _check_point_collision(end_pos, fruits_controller):
 				# 没有交叉且不与其他点碰撞，可以生成
 				_create_branch_line(start_pos, end_pos)
-				_create_end_point(end_pos, fruits_controller, new_direction)
+				var end_point_index = _create_end_point(end_pos, fruits_controller, new_direction)
 				
 				# 记录这条线段
 				existing_lines.append({
 					"start": start_pos,
 					"end": end_pos
 				})
-				return new_direction  # 返回成功生成的方向
+				
+				# 记录trunk线段信息
+				fruits_controller._record_trunk_segment(start_point_index, end_point_index)
+				
+				return {"success": true, "direction": new_direction}
 		
 		attempt += 1
 	
 	print("无法找到不交叉且角度合适的路径，跳过此生成点")
-	return Vector2.ZERO  # 生成失败
+	return {"success": false, "direction": Vector2.ZERO}
 
 ## 生成符合角度要求的方向
 func _generate_valid_direction(original_direction: Vector2, existing_branches: Array) -> Vector2:
@@ -182,15 +188,16 @@ func _create_branch_line(start_pos: Vector2, end_pos: Vector2):
 	add_child(line)
 
 ## 在末端创建新的生成点
-func _create_end_point(end_pos: Vector2, fruits_controller, direction: Vector2):
+func _create_end_point(end_pos: Vector2, fruits_controller, direction: Vector2) -> int:
 	var new_point = TRUNK_POINT_SCENE.instantiate()
 	new_point.global_position = end_pos
 	
 	# 添加到Fruits节点下
 	fruits_controller.add_child(new_point)
 	
-	# 更新Fruits控制器的记录，传入方向信息和节点引用
-	fruits_controller._add_new_point(end_pos, direction, new_point)
+	# 更新Fruits控制器的记录，传入方向信息和节点引用，并获取新点的索引
+	var new_point_index = fruits_controller._add_new_point(end_pos, direction, new_point)
+	return new_point_index
 
 ## 检查新生成点是否与已有点距离过近
 func _check_point_collision(new_pos: Vector2, fruits_controller) -> bool:

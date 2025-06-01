@@ -1,4 +1,10 @@
 [gd_scene format=3 uid="uid://dh8md7o7gv5ra"]
 
-[node name="branch_point" type="Marker2D"]
+[node name="Branch_point" type="Marker2D"]
 gizmo_extents = 30.0
+
+[node name="Branch_Status" type="Polygon2D" parent="."]
+position = Vector2(0, -0.352941)
+scale = Vector2(0.647059, 0.647059)
+color = Color(0.905882, 0, 0.909804, 0.294118)
+polygon = PackedVector2Array(0, -19, -17, 0, 0, 17, 17, 0)
