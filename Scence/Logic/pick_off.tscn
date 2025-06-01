@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bfj7ark2vtjx3"]
+
+[ext_resource type="Script" uid="uid://c52u4d63mkjvx" path="res://Script/pick_off.gd" id="1_meft4"]
+
+[node name="Pick_Off" type="Node2D"]
+script = ExtResource("1_meft4")

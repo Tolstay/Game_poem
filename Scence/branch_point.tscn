@@ -1,0 +1,4 @@
+[gd_scene format=3 uid="uid://dh8md7o7gv5ra"]
+
+[node name="branch_point" type="Marker2D"]
+gizmo_extents = 30.0

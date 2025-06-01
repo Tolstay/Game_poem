@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://l8mdqy2dsvvv"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_42b1i"]
+radius = 69.2604
+
+[node name="Fruit" type="RigidBody2D"]
+gravity_scale = 0.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_42b1i")
+
+[node name="Logic" type="Node2D" parent="."]

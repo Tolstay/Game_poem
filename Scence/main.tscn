@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3 uid="uid://b6ahd23a66ulq"]
+
+[ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
+[ext_resource type="PackedScene" uid="uid://c7rgkc38qy7ty" path="res://Scence/trunk_point.tscn" id="1_vgkri"]
+[ext_resource type="PackedScene" path="res://Scence/branch_generator.tscn" id="2_branch_gen"]
+
+[node name="Main" type="Node2D"]
+
+[node name="Fruits" type="Node2D" parent="."]
+script = ExtResource("1_cqepb")
+
+[node name="First_Point" parent="Fruits" instance=ExtResource("1_vgkri")]
+position = Vector2(579, 324)
+
+[node name="BranchGenerator" parent="Fruits" instance=ExtResource("2_branch_gen")]
