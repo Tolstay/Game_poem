@@ -215,3 +215,155 @@ func _get_random_branch_length() -> float:
 	else:
 		# 使用固定长度
 		return branch_length
+
+## 记录branch线段到existing_lines（供fruits.gd调用）
+func _record_branch_line(start_pos: Vector2, end_pos: Vector2):
+	existing_lines.append({
+		"start": start_pos,
+		"end": end_pos
+	})
+	print("记录branch线段: ", start_pos, " -> ", end_pos)
+
+## 生成branch线段（由fruits.gd调用）
+func generate_branch():
+	print("生成器执行branch生成操作")
+	var fruits_controller = get_parent()
+	if not fruits_controller:
+		return
+	
+	# 获取可用的branch_point
+	var available_branch_points = _get_available_branch_points(fruits_controller)
+	if available_branch_points.size() == 0:
+		print("没有可用的branch_point用于生成branch")
+		return
+	
+	# 随机选择一个可用的branch_point
+	var random_branch_index = available_branch_points[randi() % available_branch_points.size()]
+	_generate_branch_from_point(random_branch_index, fruits_controller)
+
+## 从指定的branch_point生成branch线段（新增方法，用于完整branch生成）
+func generate_branch_from_specific_point(branch_point_index: int):
+	print("从指定点位生成branch：", branch_point_index)
+	var fruits_controller = get_parent()
+	if not fruits_controller:
+		return
+	
+	_generate_branch_from_point(branch_point_index, fruits_controller)
+
+## 获取所有可用的branch_point索引
+func _get_available_branch_points(fruits_controller) -> Array[int]:
+	var available_points: Array[int] = []
+	for i in range(fruits_controller.point_positions.size()):
+		if fruits_controller.point_types[i] == fruits_controller.PointType.BRANCH_POINT and fruits_controller.point_states[i] > 0:
+			available_points.append(i)
+	return available_points
+
+## 从指定的branch_point生成branch线段
+func _generate_branch_from_point(branch_point_index: int, fruits_controller):
+	if branch_point_index >= fruits_controller.point_positions.size():
+		print("错误：branch_point索引超出范围")
+		return
+	
+	var branch_start_pos = fruits_controller.point_positions[branch_point_index]
+	var parent_segment_index = fruits_controller.point_parent_segments[branch_point_index]
+	
+	# 计算trunk的方向
+	var trunk_direction = _calculate_trunk_direction(parent_segment_index, fruits_controller)
+	if trunk_direction == Vector2.ZERO:
+		print("无法计算trunk方向")
+		return
+	
+	# 尝试生成branch线段
+	var max_attempts = 20
+	for attempt in range(max_attempts):
+		# 生成随机的branch方向和长度
+		var branch_direction = _generate_branch_direction(trunk_direction, fruits_controller)
+		var current_branch_length = randf_range(fruits_controller.branch_min_length, fruits_controller.branch_max_length)
+		var branch_end_pos = branch_start_pos + branch_direction * current_branch_length
+		
+		# 检查碰撞
+		if not _check_branch_line_collision(branch_start_pos, branch_end_pos, fruits_controller):
+			# 没有碰撞，创建完整的branch
+			_create_complete_branch(branch_point_index, branch_start_pos, branch_end_pos, branch_direction, fruits_controller)
+			return
+		else:
+			print("Branch生成尝试 ", attempt + 1, " 发生碰撞，重新尝试")
+	
+	print("无法为branch_point ", branch_point_index, " 找到有效的branch生成位置")
+
+## 计算trunk的生长方向
+func _calculate_trunk_direction(segment_index: int, fruits_controller) -> Vector2:
+	if segment_index < 0 or segment_index >= fruits_controller.trunk_segments.size():
+		print("错误：无效的trunk线段索引")
+		return Vector2.ZERO
+	
+	var segment = fruits_controller.trunk_segments[segment_index]
+	var start_pos = fruits_controller.point_positions[segment.start_point_index]
+	var end_pos = fruits_controller.point_positions[segment.end_point_index]
+	
+	return (end_pos - start_pos).normalized()
+
+## 基于trunk方向生成branch方向
+func _generate_branch_direction(trunk_direction: Vector2, fruits_controller) -> Vector2:
+	var trunk_angle = trunk_direction.angle()
+	
+	# 随机选择左转或右转
+	var turn_left = randf() > 0.5
+	
+	# 生成随机角度偏移
+	var min_angle_rad = deg_to_rad(fruits_controller.branch_min_angle_degrees)
+	var max_angle_rad = deg_to_rad(fruits_controller.branch_max_angle_degrees)
+	var angle_offset = randf_range(min_angle_rad, max_angle_rad)
+	
+	# 计算新角度
+	var new_angle = trunk_angle + (angle_offset if turn_left else -angle_offset)
+	
+	return Vector2(cos(new_angle), sin(new_angle))
+
+## 检查branch线段是否与现有对象碰撞
+func _check_branch_line_collision(start_pos: Vector2, end_pos: Vector2, fruits_controller) -> bool:
+	# 检查与已有点的碰撞
+	for pos in fruits_controller.point_positions:
+		if (pos - end_pos).length() < fruits_controller.branch_collision_radius:
+			return true
+	
+	# 检查与已有线段的交叉
+	if _check_line_intersection(start_pos, end_pos):
+		return true
+	
+	return false
+
+## 创建完整的branch（线段 + 终点）
+func _create_complete_branch(start_point_index: int, start_pos: Vector2, end_pos: Vector2, direction: Vector2, fruits_controller):
+	# 标记起点branch_point为已使用
+	fruits_controller.point_states[start_point_index] = 0
+	fruits_controller.point_status[start_point_index] = fruits_controller.PointStatus.EXHAUSTED
+	fruits_controller._update_point_color(start_point_index)
+	
+	# 创建branch线段
+	_create_branch_line(start_pos, end_pos)
+	
+	# 记录线段到existing_lines中
+	_record_branch_line(start_pos, end_pos)
+	
+	# 创建终点branch_point
+	var end_branch_point = fruits_controller.BRANCH_POINT_SCENE.instantiate()
+	end_branch_point.global_position = end_pos
+	fruits_controller.add_child(end_branch_point)
+	
+	# 添加终点到管理系统
+	var end_point_index = fruits_controller.point_positions.size()
+	fruits_controller.point_positions.append(end_pos)
+	fruits_controller.point_states.append(0)  # 终点没有生成次数
+	fruits_controller.point_directions.append(direction)
+	fruits_controller.point_generated_branches.append([])
+	fruits_controller.point_status.append(fruits_controller.PointStatus.END_BRANCH)  # 设置为END_BRANCH状态
+	fruits_controller.point_nodes.append(end_branch_point)
+	fruits_controller.point_types.append(fruits_controller.PointType.BRANCH_POINT)
+	fruits_controller.point_parent_segments.append(-1)  # 终点不属于任何trunk线段
+	
+	# 立即更新终点颜色
+	fruits_controller._update_point_color(end_point_index)
+	
+	print("成功生成branch：从点 ", start_point_index, " 到点 ", end_point_index)
+	print("Branch方向: ", direction, " 长度: ", start_pos.distance_to(end_pos))

@@ -4,7 +4,7 @@
 gizmo_extents = 30.0
 
 [node name="Branch_Status" type="Polygon2D" parent="."]
-position = Vector2(0, -0.352941)
-scale = Vector2(0.647059, 0.647059)
+position = Vector2(0, 2.98023e-08)
+scale = Vector2(0.352941, 0.647059)
 color = Color(0.905882, 0, 0.909804, 0.294118)
-polygon = PackedVector2Array(0, -19, -17, 0, 0, 17, 17, 0)
+polygon = PackedVector2Array(0, -8.72727, -17, 0, 0, 9.81818, 17, 0)
