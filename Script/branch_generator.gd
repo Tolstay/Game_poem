@@ -15,6 +15,14 @@ extends Node2D
 @export var min_branch_separation_degrees: float = 60.0  # 同一生成点的分支之间最小角度（度）
 @export var trunk_point_radius: float = 60.0  # trunk点的碰撞半径
 
+@export_group("Bend System", "bend_")
+@export var bend_min_points: int = 1  # 最小折线点数量
+@export var bend_max_points: int = 3  # 最大折线点数量
+@export var bend_probability: float = 1  # 生成折线点的概率
+@export var bend_min_offset: float = 8.0  # 最小垂直偏移距离
+@export var bend_max_offset: float = 20.0  # 最大垂直偏移距离
+@export var bend_min_segment_length: float = 50.0  # 生成折线点的最小线段长度
+
 # 生成点场景
 const TRUNK_POINT_SCENE = preload("res://Scence/trunk_point.tscn")
 
@@ -76,14 +84,12 @@ func _generate_single_branch(start_pos: Vector2, fruits_controller, original_dir
 			# 检查新生成点是否与已有点距离过近
 			if not _check_point_collision(end_pos, fruits_controller):
 				# 没有交叉且不与其他点碰撞，可以生成
-				_create_branch_line(start_pos, end_pos)
+				# 使用带弯曲的trunk生成替代直线生成
+				generate_trunk_with_bend(start_pos, end_pos, fruits_controller)
 				var end_point_index = _create_end_point(end_pos, fruits_controller, new_direction)
 				
-				# 记录这条线段
-				existing_lines.append({
-					"start": start_pos,
-					"end": end_pos
-				})
+				# 记录这条线段（注意：折线生成会在 generate_trunk_with_bend 内部处理）
+				# existing_lines.append() 操作已在 _create_trunk_line_with_bend 中处理
 				
 				# 记录trunk线段信息
 				fruits_controller._record_trunk_segment(start_point_index, end_point_index)
@@ -367,3 +373,89 @@ func _create_complete_branch(start_point_index: int, start_pos: Vector2, end_pos
 	
 	print("成功生成branch：从点 ", start_point_index, " 到点 ", end_point_index)
 	print("Branch方向: ", direction, " 长度: ", start_pos.distance_to(end_pos))
+
+## 生成trunk线段（由fruits.gd调用，支持弯曲）
+func generate_trunk_with_bend(start_pos: Vector2, end_pos: Vector2, fruits_controller):
+	print("生成器执行带弯曲的trunk生成操作")
+	print("起点: ", start_pos, " 终点: ", end_pos, " 距离: ", start_pos.distance_to(end_pos))
+	
+	# 计算包含折线点的完整路径
+	var all_points = _calculate_bend_points(start_pos, end_pos)
+	
+	print("生成的路径包含 ", all_points.size(), " 个点")
+	for i in range(all_points.size()):
+		print("  点 ", i, ": ", all_points[i])
+	
+	# 创建弯曲的trunk线段
+	_create_trunk_line_with_bend(all_points)
+	
+	# 存储折线点供将来处理
+	if fruits_controller and fruits_controller.has_method("_store_bend_points_for_future_processing"):
+		fruits_controller._store_bend_points_for_future_processing(all_points)
+
+## 计算折线点（包括起点和终点）
+func _calculate_bend_points(start_pos: Vector2, end_pos: Vector2) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	points.append(start_pos)  # 起点
+	
+	# 计算线段长度和方向
+	var segment_length = start_pos.distance_to(end_pos)
+	var segment_direction = (end_pos - start_pos).normalized()
+	var perpendicular = Vector2(-segment_direction.y, segment_direction.x)  # 垂直方向
+	
+	# 检查是否应该添加折线点
+	if segment_length < bend_min_segment_length:
+		points.append(end_pos)  # 太短的线段不添加折线点
+		return points
+	
+	# 决定折线点数量
+	var bend_count = 0
+	if randf() < bend_probability:
+		# 确保最小值不超过最大值
+		var min_count = max(0, bend_min_points)
+		var max_count = max(min_count, bend_max_points)
+		bend_count = randi_range(min_count, max_count)  # bend_min_points到bend_max_points
+	
+	print("生成 ", bend_count, " 个折线点（范围: ", bend_min_points, "-", bend_max_points, "）")
+	
+	# 生成中间折线点
+	for i in range(bend_count):
+		# 计算沿线段的位置（等分）
+		var t = float(i + 1) / float(bend_count + 1)
+		var base_point = start_pos.lerp(end_pos, t)
+		
+		# 添加垂直偏移（确保至少达到最小偏移距离）
+		var offset_direction = 1.0 if randf() > 0.5 else -1.0  # 随机选择偏移方向
+		var offset_amount = randf_range(bend_min_offset, bend_max_offset) * offset_direction
+		var offset_point = base_point + perpendicular * offset_amount
+		
+		print("  折线点 ", i + 1, ": 基础位置 ", base_point, " 偏移量 ", offset_amount, " (范围: ", bend_min_offset, "-", bend_max_offset, ")")
+		
+		points.append(offset_point)
+	
+	points.append(end_pos)  # 终点
+	return points
+
+## 创建带弯曲的trunk线段
+func _create_trunk_line_with_bend(points: Array[Vector2]):
+	if points.size() < 2:
+		return
+	
+	var line = Line2D.new()
+	line.joint_mode = Line2D.LINE_JOINT_ROUND  # 设置圆角连接
+	
+	# 添加所有点到Line2D
+	for point in points:
+		line.add_point(to_local(point))
+	
+	line.width = line_width
+	line.default_color = line_color
+	
+	add_child(line)
+	
+	# 记录所有线段段落
+	for i in range(points.size() - 1):
+		existing_lines.append({
+			"start": points[i],
+			"end": points[i + 1]
+		})

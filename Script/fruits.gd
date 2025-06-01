@@ -73,8 +73,18 @@ var generator: Node2D
 @export var branch_min_length: float = 30.0  # branch的最小长度
 @export var branch_max_length: float = 60.0  # branch的最大长度
 
+# 折线点branch生成参数
+@export_group("Bend Point Branch Generation", "bend_branch_")
+@export var bend_branch_enabled: bool = true  # 是否启用基于折线点的branch生成
+@export var bend_branch_probability: float = 0.6  # 每个折线点生成branch_point的概率
+@export var bend_branch_collision_radius: float = 25.0  # 折线点branch_point的碰撞半径
+
 # 记录本轮参与生成的点
 var points_used_this_round: Array[int] = []
+
+# 折线点管理（为"G"键功能预留）
+var stored_bend_points: Array[Vector2] = []  # 存储的折线点，等待"G"键处理
+var bend_point_segments: Array[int] = []  # 记录每个折线点所属的线段索引
 
 # 生成点场景
 const BRANCH_POINT_SCENE = preload("res://Scence/branch_point.tscn")
@@ -88,15 +98,18 @@ func _ready():
 	update_all_point_colors()
 
 func _input(_event):
-	# 响应generate输入映射
+	# 响应generate输入映射（空格键：生成trunk带折线）
 	if Input.is_action_just_pressed("generate"):
 		_execute_generation()
-	# 响应branch_generate输入映射（完整branch生成：点位+线段）
+	# 响应branch_generate输入映射（G键：完整branch生成：点位+线段）
 	elif Input.is_action_just_pressed("branch_generate"):
 		_execute_complete_branch_generation()
-	# 响应branch_point_generate输入映射（独立生成branch_point，保留用于精细控制）
+	# 响应branch_point_generate输入映射（B键：独立生成branch_point，保留用于精细控制）
 	elif Input.is_action_just_pressed("branch_point_generate"):
 		_execute_branch_point_generation()
+	# 响应bend_branch_generate映射（F键：在存储的折线点生成branch_point）
+	elif Input.is_action_just_pressed("bend_branch_generate"):
+		_execute_bend_point_branch_generation()
 
 ## 记录所有生成点的坐标和状态
 func _record_initial_points():
@@ -717,3 +730,92 @@ func _create_branch_point_at_position_return_index(branch_pos: Vector2, segment_
 	print("线段当前branch数: ", trunk_segments[segment_index].current_branch_count, "/", trunk_segments[segment_index].max_branch_points)
 	
 	return branch_point_index
+
+## 存储折线点用于后续处理（将来由"G"键触发）
+func _store_bend_points_for_future_processing(all_points: Array[Vector2]):
+	if not bend_branch_enabled or all_points.size() <= 2:
+		return  # 没有中间点或功能未启用
+	
+	# 获取当前正在处理的线段索引（最新的线段）
+	var current_segment_index = trunk_segments.size() - 1
+	if current_segment_index < 0:
+		return
+	
+	# 提取中间的折线点（排除起点和终点）
+	for i in range(1, all_points.size() - 1):
+		var bend_point = all_points[i]
+		stored_bend_points.append(bend_point)
+		bend_point_segments.append(current_segment_index)
+	
+	print("存储了 ", all_points.size() - 2, " 个折线点，等待'G'键处理")
+
+## 检查折线点位置是否与现有点碰撞
+func _check_bend_point_collision(bend_pos: Vector2) -> bool:
+	for pos in point_positions:
+		if (pos - bend_pos).length() < bend_branch_collision_radius:
+			return true
+	return false
+
+## 在折线点位置创建branch_point
+func _create_branch_point_at_bend_position(bend_pos: Vector2, segment_index: int):
+	# 创建branch_point实例
+	var branch_point = BRANCH_POINT_SCENE.instantiate()
+	branch_point.global_position = bend_pos
+	add_child(branch_point)
+	
+	# 添加到点位管理系统
+	var branch_point_index = _add_branch_point(bend_pos, segment_index, branch_point)
+	
+	# 更新线段的branch计数（如果线段还存在）
+	if segment_index < trunk_segments.size():
+		trunk_segments[segment_index].current_branch_count += 1
+		trunk_segments[segment_index].branch_point_indices.append(branch_point_index)
+		
+		# 更新可视化标签
+		_update_segment_label(segment_index)
+	
+	print("在折线点生成branch_point，位置: ", bend_pos, " 所属线段: ", segment_index, " 索引: ", branch_point_index)
+
+## 执行折线点branch生成操作
+func _execute_bend_point_branch_generation():
+	print("执行折线点branch生成操作")
+	
+	# 检查是否有可用的折线点
+	if stored_bend_points.size() == 0:
+		print("没有可用的折线点用于生成branch")
+		return
+	
+	var generation_count = 0
+	var max_generations = min(stored_bend_points.size(), 5)  # 限制每次最多生成5个
+	
+	# 遍历所有折线点，按概率尝试生成branch_point
+	for i in range(stored_bend_points.size()):
+		if generation_count >= max_generations:
+			break
+			
+		var bend_point = stored_bend_points[i]
+		var segment_index = bend_point_segments[i] if i < bend_point_segments.size() else -1
+		
+		# 概率检查：是否在此折线点生成branch_point
+		if randf() < bend_branch_probability:
+			# 碰撞检查：确保不与现有点太近
+			if not _check_bend_point_collision(bend_point):
+				_create_branch_point_at_bend_position(bend_point, segment_index)
+				generation_count += 1
+				print("成功在折线点 ", i, " 上生成branch_point")
+			else:
+				print("折线点 ", i, " 位置发生碰撞，跳过")
+	
+	print("本次在 ", generation_count, " 个折线点生成了branch_point")
+
+## 尝试在折线点位置生成branch_point
+func _try_generate_branch_point_on_bend_point(bend_pos: Vector2) -> bool:
+	# 检查折线点是否与已有点碰撞
+	if not _check_bend_point_collision(bend_pos):
+		# 位置有效，创建branch_point
+		var segment_index = bend_point_segments[bend_point_segments.size() - 1] if bend_point_segments.size() > 0 else -1
+		_create_branch_point_at_bend_position(bend_pos, segment_index)
+		return true
+	
+	print("折线点位置发生碰撞，生成失败")
+	return false

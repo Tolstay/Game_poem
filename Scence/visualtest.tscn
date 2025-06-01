@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3 uid="uid://p180m8yxpcnr"]
+
+[ext_resource type="PackedScene" uid="uid://c7rgkc38qy7ty" path="res://Scence/trunk_point.tscn" id="1_68awy"]
+[ext_resource type="Texture2D" uid="uid://dnopfwef8pdij" path="res://Asset/branchtest.png" id="2_dj86l"]
+
+[node name="Visualtest" type="Node2D"]
+
+[node name="start" parent="." instance=ExtResource("1_68awy")]
+position = Vector2(309, 322)
+
+[node name="end" parent="." instance=ExtResource("1_68awy")]
+position = Vector2(830, 322)
+
+[node name="Line2D" type="Line2D" parent="."]
+position = Vector2(414, 191)
+points = PackedVector2Array(0, 0, 96, -26, 192, 1, 300, 0)
+width = 20.0
+texture = ExtResource("2_dj86l")
+texture_mode = 1
+joint_mode = 2
