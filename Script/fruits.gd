@@ -122,14 +122,21 @@ func _record_initial_points():
 	for child in get_children():
 		if "Point" in child.name:
 			point_positions.append(child.global_position)
-			point_states.append(max_generations_per_point)  # 初始生成次数
+			
+			# 检查是否为特殊的起始点，给予额外生成机会
+			var initial_generations = max_generations_per_point
+			if child.name == "First_Point":
+				initial_generations = 3  # 起始点拥有3次生成机会
+				print("检测到起始点 ", child.name, "，给予特殊生成次数: ", initial_generations)
+			
+			point_states.append(initial_generations)  # 设置生成次数
 			point_directions.append(Vector2.ZERO)  # 初始点没有方向
 			point_generated_branches.append([])  # 初始化空的分支记录
 			point_status.append(PointStatus.AVAILABLE)  # 初始状态为可用
 			point_nodes.append(child)  # 记录节点引用
 			point_types.append(PointType.TRUNK_POINT)  # 初始点都是trunk点
 			point_parent_segments.append(-1)  # trunk点不属于任何线段
-			print("记录生成点: ", child.name, " 位置: ", child.global_position, " 剩余次数: ", max_generations_per_point)
+			print("记录生成点: ", child.name, " 位置: ", child.global_position, " 剩余次数: ", initial_generations)
 
 ## 添加新生成点（trunk点）
 func _add_new_point(pos: Vector2, direction: Vector2 = Vector2.ZERO, node: Node2D = null):
