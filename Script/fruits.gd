@@ -5,26 +5,17 @@ extends Node2D
 
 # 点状态枚举
 enum PointStatus {
-	AVAILABLE,    # 可生成状态（紫色）
-	EXHAUSTED,    # 已耗尽状态（红色）
-	PATH_TRUNK,   # 路过节点：剩余次数1但无合法路径（黄色）
-	END_TRUNK,    # 终点节点：剩余次数2但无合法路径（绿色）
-	END_BRANCH    # branch终点节点：不可生成（绿色）
+	AVAILABLE,    # 可生成状态
+	EXHAUSTED,    # 已耗尽状态
+	PATH_TRUNK,   # 路过节点：剩余次数1但无合法路径
+	END_TRUNK,    # 终点节点：剩余次数2但无合法路径
+	END_BRANCH    # branch终点节点：不可生成
 }
 
 # 点类型枚举
 enum PointType {
 	TRUNK_POINT,      # trunk点
 	BRANCH_POINT      # branch点
-}
-
-# 状态颜色定义
-const STATUS_COLORS = {
-	PointStatus.AVAILABLE: Color(0.6, 0.2, 0.8, 1.0),  # 紫色
-	PointStatus.EXHAUSTED: Color(0.8, 0.2, 0.2, 1.0),  # 红色
-	PointStatus.PATH_TRUNK: Color(1.0, 1.0, 0.0, 1.0), # 黄色
-	PointStatus.END_TRUNK: Color(0.2, 0.8, 0.2, 1.0),  # 绿色
-	PointStatus.END_BRANCH: Color(0.2, 0.8, 0.2, 1.0)  # 绿色
 }
 
 # 生成点坐标记录
@@ -61,6 +52,10 @@ var generator: Node2D
 @export var min_branch_points_per_segment: int = 1       # 每线段最少branch_point数（物理约束的最小值）
 @export var max_branch_points_per_segment: int = 3       # 每线段最多branch_point数（物理约束的最大值）
 
+# 显示控制参数
+@export_group("Display Controls", "display_")
+@export var display_segment_labels: bool = false   # 是否显示线段剩余次数标签
+
 # Branch生成参数
 @export var branch_position_min: float = 0.15  # branch_point在线段上的最小位置（0.0-1.0）
 @export var branch_position_max: float = 0.85  # branch_point在线段上的最大位置（0.0-1.0）
@@ -95,8 +90,6 @@ func _ready():
 	generator = $BranchGenerator
 	# 记录初始生成点
 	_record_initial_points()
-	# 设置初始颜色
-	update_all_point_colors()
 
 # ==================== 输入处理 ====================
 
@@ -127,7 +120,6 @@ func _record_initial_points():
 			var initial_generations = max_generations_per_point
 			if child.name == "First_Point":
 				initial_generations = 3  # 起始点拥有3次生成机会
-				print("检测到起始点 ", child.name, "，给予特殊生成次数: ", initial_generations)
 			
 			point_states.append(initial_generations)  # 设置生成次数
 			point_directions.append(Vector2.ZERO)  # 初始点没有方向
@@ -136,7 +128,6 @@ func _record_initial_points():
 			point_nodes.append(child)  # 记录节点引用
 			point_types.append(PointType.TRUNK_POINT)  # 初始点都是trunk点
 			point_parent_segments.append(-1)  # trunk点不属于任何线段
-			print("记录生成点: ", child.name, " 位置: ", child.global_position, " 剩余次数: ", initial_generations)
 
 ## 添加新生成点（trunk点）
 func _add_new_point(pos: Vector2, direction: Vector2 = Vector2.ZERO, node: Node2D = null):
@@ -149,7 +140,6 @@ func _add_new_point(pos: Vector2, direction: Vector2 = Vector2.ZERO, node: Node2
 	point_nodes.append(node)  # 记录节点引用
 	point_types.append(PointType.TRUNK_POINT)  # 新生成的点都是trunk点
 	point_parent_segments.append(-1)  # trunk点不属于任何线段
-	print("添加新生成点: ", pos, " 方向: ", direction, " 剩余次数: ", max_generations_per_point)
 	return new_point_index
 
 ## 添加新的branch_point到管理系统
@@ -164,20 +154,14 @@ func _add_branch_point(pos: Vector2, parent_segment_index: int, node: Node2D) ->
 	point_types.append(PointType.BRANCH_POINT)  # 标记为branch点
 	point_parent_segments.append(parent_segment_index)  # 记录所属线段
 	
-	# 立即更新branch_point的颜色
-	_update_point_color(branch_point_index)
-	
-	print("添加新branch_point: ", pos, " 所属线段: ", parent_segment_index, " 剩余次数: 1")
 	return branch_point_index
 
 # ==================== Trunk生成 ====================
 
 ## 执行trunk生成操作
 func _execute_generation():
-	print("执行trunk生成操作")
 	# 检查是否有可用的生成点
 	if get_available_points_count() == 0:
-		print("没有可用的生成点")
 		return
 	
 	# 清空本轮使用记录
@@ -193,22 +177,16 @@ func _execute_generation():
 func _call_generator_generate():
 	if generator and generator.has_method("generate"):
 		generator.generate()
-	else:
-		print("生成器不存在或缺少generate方法")
 
 ## 减少参与生成的点的剩余次数
 func _decrease_generation_counts():
 	for point_index in points_used_this_round:
 		if point_index < point_states.size():
 			point_states[point_index] -= 1
-			print("点 ", point_index, " 使用一次，剩余次数: ", point_states[point_index])
 			
 			# 更新状态
 			if point_states[point_index] <= 0:
 				point_status[point_index] = PointStatus.EXHAUSTED
-			
-			# 更新颜色
-			_update_point_color(point_index)
 	
 	# 生成完成后的清理
 	_post_generation_cleanup()
@@ -232,7 +210,6 @@ func get_point_generated_branches(point_index: int) -> Array:
 ## 记录新的trunk线段（由生成器调用）
 func _record_trunk_segment(start_point_index: int, end_point_index: int):
 	if start_point_index >= point_positions.size() or end_point_index >= point_positions.size():
-		print("错误：线段端点索引超出范围")
 		return
 	
 	var start_pos = point_positions[start_point_index]
@@ -255,55 +232,37 @@ func _record_trunk_segment(start_point_index: int, end_point_index: int):
 	trunk_segments.append(segment_data)
 	var segment_index = trunk_segments.size() - 1
 	
-	print("记录trunk线段 ", segment_index, ": 从点", start_point_index, "到点", end_point_index, 
-		  " 长度:", segment_length, " 最大branch数:", max_branch_points)
-	
 	# 创建可视化标签
-	_create_segment_label(segment_index, start_pos, end_pos, max_branch_points)
+	if display_segment_labels:
+		_create_segment_label(segment_index, start_pos, end_pos, max_branch_points)
 
 # ==================== Branch点生成 ====================
 
 ## 执行完整的branch生成操作（点位生成 + branch线段生成）
 func _execute_complete_branch_generation():
-	print("执行完整branch生成操作")
-	
 	# 检查是否有可用的trunk线段
 	var available_segments = _get_available_trunk_segments()
 	if available_segments.size() == 0:
-		print("没有可用的trunk线段用于生成branch")
 		return
 	
 	# 尝试生成branch_point
 	var new_branch_point_index = _try_generate_branch_point_anywhere(available_segments)
 	if new_branch_point_index == -1:
-		print("无法生成branch_point")
 		return
 	
 	# 立即从新生成的branch_point生成branch线段
 	if generator and generator.has_method("generate_branch_from_specific_point"):
 		generator.generate_branch_from_specific_point(new_branch_point_index)
-		print("完整branch生成成功：从点位 ", new_branch_point_index, " 生成了完整的branch")
-	else:
-		print("生成器不支持指定点位的branch生成")
 
 ## 执行branch_point生成操作
 func _execute_branch_point_generation():
-	print("执行branch_point生成操作")
-	
 	var available_segments = _get_available_trunk_segments()
 	if available_segments.size() == 0:
-		print("没有可用的trunk线段用于生成branch_point")
 		return
 	
 	# 调用generator生成branch点
 	if generator and generator.has_method("generate_branch_point"):
-		var success = generator.generate_branch_point(available_segments)
-		if success:
-			print("成功生成branch_point")
-		else:
-			print("branch_point生成失败")
-	else:
-		print("错误：生成器不支持branch_point生成")
+		generator.generate_branch_point(available_segments)
 
 ## 在任意可用线段上尝试生成branch_point（统一接口）
 func _try_generate_branch_point_anywhere(available_segments: Array[int]) -> int:
@@ -311,7 +270,6 @@ func _try_generate_branch_point_anywhere(available_segments: Array[int]) -> int:
 	if generator and generator.has_method("try_generate_branch_point_anywhere"):
 		return generator.try_generate_branch_point_anywhere(available_segments)
 	else:
-		print("错误：生成器不支持branch_point批量生成")
 		return -1
 
 ## 尝试在指定线段上生成branch_point（统一接口，返回新点索引或-1）
@@ -320,13 +278,11 @@ func _try_generate_branch_point_on_segment(segment_index: int) -> int:
 	if generator and generator.has_method("try_generate_branch_point_on_segment"):
 		return generator.try_generate_branch_point_on_segment(segment_index)
 	else:
-		print("错误：生成器不支持指定线段branch_point生成")
 		return -1
 
 ## 获取线段数据（提取公共逻辑）
 func _get_segment_data(segment_index: int) -> Dictionary:
 	if segment_index >= trunk_segments.size():
-		print("错误：线段索引超出范围")
 		return {}
 	
 	var segment = trunk_segments[segment_index]
@@ -359,25 +315,17 @@ func _create_branch_point_at_position(branch_pos: Vector2, segment_index: int) -
 	# 更新线段数据
 	_update_segment_branch_count(segment_index, branch_point_index)
 	
-	print("在线段 ", segment_index, " 上生成branch_point，位置: ", branch_pos, " 索引: ", branch_point_index)
 	return branch_point_index
 
 ## 更新线段的branch计数（提取公共逻辑）
 func _update_segment_branch_count(segment_index: int, branch_point_index: int):
 	if segment_index < trunk_segments.size():
-		var old_count = trunk_segments[segment_index].current_branch_count
 		trunk_segments[segment_index].current_branch_count += 1
 		trunk_segments[segment_index].branch_point_indices.append(branch_point_index)
 		
 		# 更新可视化标签
-		_update_segment_label(segment_index)
-		
-		var segment = trunk_segments[segment_index]
-		print("更新线段 ", segment_index, " 计数: ", old_count, " -> ", segment.current_branch_count, "/", segment.max_branch_points)
-		print("  - 新增branch点索引: ", branch_point_index)
-		print("  - 线段所有branch点: ", segment.branch_point_indices)
-	else:
-		print("错误：尝试更新无效线段索引 ", segment_index, " 的计数")
+		if display_segment_labels:
+			_update_segment_label(segment_index)
 
 # ==================== 折线点Branch生成 ====================
 
@@ -392,20 +340,16 @@ func _store_bend_points_for_future_processing(all_points: Array[Vector2], segmen
 		target_segment_index = trunk_segments.size() - 1
 	
 	if target_segment_index < 0 or target_segment_index >= trunk_segments.size():
-		print("错误：无效的线段索引 ", target_segment_index, "，当前线段数量: ", trunk_segments.size())
 		return
 	
 	# 存储完整的弯曲路径到线段数据中
 	trunk_segments[target_segment_index].curve_points = all_points.duplicate()
-	print("为线段 ", target_segment_index, " 存储了 ", all_points.size(), " 个路径点")
 	
 	# 同时保持原有的折线点存储逻辑（用于F键功能）
 	for i in range(1, all_points.size() - 1):
 		var bend_point = all_points[i]
 		stored_bend_points.append(bend_point)
 		bend_point_segments.append(target_segment_index)
-	
-	print("存储了 ", all_points.size() - 2, " 个折线点，等待'F'键处理，关联到线段 ", target_segment_index)
 
 ## 获取存储的折线点数据（供generator调用）
 func get_stored_bend_points() -> Dictionary:
@@ -421,7 +365,6 @@ func get_segment_curve_points(segment_index: int) -> Array[Vector2]:
 	
 	var curve_points = trunk_segments[segment_index].curve_points
 	if curve_points.size() > 0:
-		print("获取线段 ", segment_index, " 的弯曲路径，包含 ", curve_points.size(), " 个点")
 		return curve_points
 	else:
 		# 如果没有弯曲数据，返回直线端点
@@ -432,10 +375,7 @@ func get_segment_curve_points(segment_index: int) -> Array[Vector2]:
 
 ## 执行折线点branch生成操作
 func _execute_bend_point_branch_generation():
-	print("执行折线点branch生成操作")
-	
 	if stored_bend_points.size() == 0:
-		print("没有可用的折线点用于生成branch")
 		return
 	
 	var generation_count = 0
@@ -453,9 +393,6 @@ func _execute_bend_point_branch_generation():
 		if randf() < bend_branch_probability and not _check_bend_point_collision(bend_point):
 			_create_branch_point_at_bend_position(bend_point, segment_index)
 			generation_count += 1
-			print("成功在折线点 ", i, " 上生成branch_point")
-	
-	print("本次在 ", generation_count, " 个折线点生成了branch_point")
 
 ## 在折线点位置创建branch_point
 func _create_branch_point_at_bend_position(bend_pos: Vector2, segment_index: int):
@@ -463,7 +400,6 @@ func _create_branch_point_at_bend_position(bend_pos: Vector2, segment_index: int
 	if segment_index >= 0 and segment_index < trunk_segments.size():
 		var segment = trunk_segments[segment_index]
 		if segment.current_branch_count >= segment.max_branch_points:
-			print("警告：线段 ", segment_index, " 已达到最大容量，跳过折线点branch生成")
 			return
 	
 	var branch_point = BRANCH_POINT_SCENE.instantiate()
@@ -475,8 +411,6 @@ func _create_branch_point_at_bend_position(bend_pos: Vector2, segment_index: int
 	# 更新线段的branch计数（如果线段还存在）
 	if segment_index >= 0 and segment_index < trunk_segments.size():
 		_update_segment_branch_count(segment_index, branch_point_index)
-	
-	print("在折线点生成branch_point，位置: ", bend_pos, " 所属线段: ", segment_index, " 索引: ", branch_point_index)
 
 # ==================== 碰撞检测 ====================
 
@@ -509,8 +443,6 @@ func _create_complete_branch(start_point_index: int, start_pos: Vector2, end_pos
 	# 调用generator创建完整branch
 	if generator and generator.has_method("create_complete_branch"):
 		generator.create_complete_branch(start_point_index, start_pos, end_pos, direction)
-	else:
-		print("错误：生成器不支持完整branch创建")
 
 # ==================== 查询和状态管理 ====================
 
@@ -546,12 +478,10 @@ func get_available_points_count() -> int:
 
 ## 获取生成点的详细状态信息
 func get_points_status():
-	print("=== 生成点状态 ===")
 	for i in range(point_positions.size()):
-		var status = "可用" if point_states[i] > 0 else "已耗尽"
-		var type_name = "TRUNK" if point_types[i] == PointType.TRUNK_POINT else "BRANCH"
-		var branch_count = point_generated_branches[i].size() if i < point_generated_branches.size() else 0
-		print("点 ", i, ": 类型 ", type_name, " 位置 ", point_positions[i], " 剩余次数 ", point_states[i], " 状态 ", status, " 已生成分支数: ", branch_count)
+		var _status = "可用" if point_states[i] > 0 else "已耗尽"
+		var _type_name = "TRUNK" if point_types[i] == PointType.TRUNK_POINT else "BRANCH"
+		var _branch_count = point_generated_branches[i].size() if i < point_generated_branches.size() else 0
 
 ## 设置点为无空间状态
 func set_point_no_space(point_index: int):
@@ -565,39 +495,14 @@ func set_point_no_space(point_index: int):
 		point_status[point_index] = PointStatus.END_TRUNK  # 无剩余次数且无路径
 	else:
 		point_status[point_index] = PointStatus.PATH_TRUNK  # 有剩余次数但无路径
-	
-	print("设置点 ", point_index, " 为无空间状态，剩余次数: ", remaining_count, 
-		  " 状态: ", "END_TRUNK" if remaining_count <= 0 else "PATH_TRUNK")
-
-# ==================== 颜色管理 ====================
-
-## 更新所有点的颜色显示
-func update_all_point_colors():
-	for i in range(point_positions.size()):
-		_update_point_color(i)
-
-## 更新单个点的颜色
-func _update_point_color(point_index: int):
-	if point_index >= point_nodes.size() or point_index >= point_status.size():
-		return
-	
-	var point_node = point_nodes[point_index]
-	if not point_node or not is_instance_valid(point_node):
-		return
-	
-	var status = point_status[point_index]
-	var target_color = STATUS_COLORS.get(status, Color.WHITE)
-	
-	# 查找Trunk_Status子节点并设置颜色
-	for child in point_node.get_children():
-		if child.name == "Trunk_Status":
-			child.modulate = target_color
-			break
 
 # ==================== 可视化标签管理 ====================
 
 ## 创建线段可视化标签
 func _create_segment_label(segment_index: int, start_pos: Vector2, end_pos: Vector2, max_branch_points: int):
+	if not display_segment_labels:
+		return
+		
 	var label = Label.new()
 	label.text = str(max_branch_points)
 	label.add_theme_color_override("font_color", Color.WHITE)
@@ -613,10 +518,12 @@ func _create_segment_label(segment_index: int, start_pos: Vector2, end_pos: Vect
 		segment_labels.append(null)
 	
 	segment_labels[segment_index] = label
-	print("创建线段 ", segment_index, " 的可视化标签，位置: ", mid_pos, " 最大branch数: ", max_branch_points)
 
 ## 更新线段标签显示
 func _update_segment_label(segment_index: int):
+	if not display_segment_labels:
+		return
+		
 	if segment_index >= segment_labels.size() or segment_index >= trunk_segments.size():
 		return
 	
@@ -634,48 +541,26 @@ func _update_segment_label(segment_index: int):
 		else:
 			label.add_theme_color_override("font_color", Color.WHITE)
 
+## 切换标签显示
+func toggle_segment_labels():
+	display_segment_labels = !display_segment_labels
+	
+	for label in segment_labels:
+		if label and is_instance_valid(label):
+			label.visible = display_segment_labels
+
 # ==================== 清理和维护 ====================
 
 ## 生成后清理
 func _post_generation_cleanup():
 	# 清空本轮使用记录
 	points_used_this_round.clear()
-	
-	# 输出当前所有点的状态
-	print("=== 当前所有生成点状态 ===")
-	for i in range(point_positions.size()):
-		var status_name = ""
-		match point_status[i]:
-			PointStatus.AVAILABLE: status_name = "可用"
-			PointStatus.EXHAUSTED: status_name = "已耗尽"
-			PointStatus.PATH_TRUNK: status_name = "路过节点"
-			PointStatus.END_TRUNK: status_name = "终点节点"
-		var type_name = "TRUNK" if point_types[i] == PointType.TRUNK_POINT else "BRANCH"
-		var branch_count = point_generated_branches[i].size() if i < point_generated_branches.size() else 0
-		print("点 ", i, ": 类型 ", type_name, " 位置 ", point_positions[i], " 剩余次数 ", point_states[i], " 状态 ", status_name, " 已生成分支数: ", branch_count)
-	
-	# 输出所有线段状态
-	print_all_segment_status()
 
 ## 调试：显示所有线段状态
 func print_all_segment_status():
-	print("=== 线段状态详情 ===")
 	for i in range(trunk_segments.size()):
 		var segment = trunk_segments[i]
-		var remaining = segment.max_branch_points - segment.current_branch_count
-		print("线段 ", i, ": ", segment.current_branch_count, "/", segment.max_branch_points, " (剩余: ", remaining, ")")
-		print("  - branch点索引: ", segment.branch_point_indices)
-		print("  - 起点: ", point_positions[segment.start_point_index])
-		print("  - 终点: ", point_positions[segment.end_point_index])
-		if segment.curve_points.size() > 0:
-			print("  - 弯曲路径点数: ", segment.curve_points.size())
-		
-		# 验证标签显示
-		if i < segment_labels.size() and segment_labels[i]:
-			var label_text = segment_labels[i].text
-			print("  - 标签显示: '", label_text, "' (应显示: '", str(remaining), "')")
-			if label_text != str(remaining):
-				print("  *** 警告：标签显示不一致！***")
+		var _remaining = segment.max_branch_points - segment.current_branch_count
 
 ## 供generator调用的接口方法 ====================
 
@@ -703,7 +588,6 @@ func mark_branch_point_exhausted(point_index: int):
 	if point_index < point_states.size():
 		point_states[point_index] = 0
 		point_status[point_index] = PointStatus.EXHAUSTED
-		_update_point_color(point_index)
 
 ## 创建branch终点（供generator调用）
 func create_branch_endpoint(end_pos: Vector2, direction: Vector2) -> int:
@@ -722,8 +606,5 @@ func create_branch_endpoint(end_pos: Vector2, direction: Vector2) -> int:
 	point_nodes.append(end_branch_point)
 	point_types.append(PointType.BRANCH_POINT)
 	point_parent_segments.append(-1)  # 终点不属于任何trunk线段
-	
-	# 立即更新终点颜色
-	_update_point_color(end_point_index)
 	
 	return end_point_index

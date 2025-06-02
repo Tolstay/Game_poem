@@ -9,10 +9,16 @@ extends Node2D
 @export var max_branch_length: float = 80.0  # 分支长度上限
 @export var length_randomness: float = 0.8  # 长度随机化频率 (0.0=固定长度, 1.0=完全随机)
 @export var line_width: float = 3.0
-@export var line_color: Color = Color(0.6, 0.4, 0.2, 1.0)
-@export var min_angle_degrees: float = 30.0  # 最小分支角度（度）
-@export var max_angle_degrees: float = 85.0  # 最大分支角度（度）
-@export var min_branch_separation_degrees: float = 60.0  # 同一生成点的分支之间最小角度（度）
+
+@export_group("Line Colors", "line_")
+@export var line_trunk_color: Color = Color(0.6, 0.4, 0.2, 1.0)  # trunk线段颜色
+@export var line_branch_color: Color = Color(0.2, 0.7, 0.3, 1.0)  # branch线段颜色
+
+@export_group("Generation Angles", "angle_")
+@export var angle_min_degrees: float = 30.0  # 最小分支角度（度）
+@export var angle_max_degrees: float = 85.0  # 最大分支角度（度）
+@export var angle_min_branch_separation_degrees: float = 60.0  # 同一生成点的分支之间最小角度（度）
+
 @export var trunk_point_radius: float = 60.0  # trunk点的碰撞半径
 
 @export_group("Bend System", "bend_")
@@ -63,9 +69,6 @@ func _generate_branches_from_available_points(fruits_controller):
 			else:
 				# 无法生成有效路径，设置为无空间状态
 				fruits_controller.set_point_no_space(i)
-	
-	# 更新所有点的颜色显示
-	fruits_controller.update_all_point_colors()
 
 ## 生成单条分支，返回生成结果
 func _generate_single_branch(start_pos: Vector2, fruits_controller, original_direction: Vector2, existing_branches: Array, start_point_index: int) -> Dictionary:
@@ -113,8 +116,8 @@ func _generate_valid_direction(original_direction: Vector2, existing_branches: A
 	var original_angle = original_direction.angle()
 	
 	# 生成符合角度限制的新方向
-	var min_angle_rad = deg_to_rad(min_angle_degrees)
-	var max_angle_rad = deg_to_rad(max_angle_degrees)
+	var min_angle_rad = deg_to_rad(angle_min_degrees)
+	var max_angle_rad = deg_to_rad(angle_max_degrees)
 	
 	var max_direction_attempts = 20
 	for attempt in range(max_direction_attempts):
@@ -149,7 +152,7 @@ func _generate_direction_avoiding_existing(existing_branches: Array) -> Vector2:
 
 ## 检查新方向与已有分支的角度分离是否足够
 func _check_branch_separation(new_direction: Vector2, existing_branches: Array) -> bool:
-	var min_separation_rad = deg_to_rad(min_branch_separation_degrees)
+	var min_separation_rad = deg_to_rad(angle_min_branch_separation_degrees)
 	
 	for existing_branch in existing_branches:
 		var angle_diff = abs(new_direction.angle() - existing_branch.angle())
@@ -192,7 +195,7 @@ func _create_branch_line(start_pos: Vector2, end_pos: Vector2):
 	line.add_point(to_local(start_pos))
 	line.add_point(to_local(end_pos))
 	line.width = line_width
-	line.default_color = line_color
+	line.default_color = line_branch_color
 	add_child(line)
 
 ## 在末端创建新的生成点
@@ -635,7 +638,7 @@ func _create_trunk_line_with_bend(points: Array[Vector2]):
 		line.add_point(to_local(point))
 	
 	line.width = line_width
-	line.default_color = line_color
+	line.default_color = line_trunk_color
 	
 	add_child(line)
 	

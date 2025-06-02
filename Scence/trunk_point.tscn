@@ -2,7 +2,3 @@
 
 [node name="Trunk_Point" type="Marker2D"]
 gizmo_extents = 20.0
-
-[node name="Trunk_Status" type="Polygon2D" parent="."]
-color = Color(0.905882, 0, 0.909804, 0.294118)
-polygon = PackedVector2Array(0, -8, -7, 0, 0, 8, 7, 0)

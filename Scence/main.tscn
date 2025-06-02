@@ -6,6 +6,15 @@
 
 [node name="Main" type="Node2D"]
 
+[node name="Background" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="ColorRect" type="ColorRect" parent="Background"]
+offset_right = 40.0
+offset_bottom = 40.0
+scale = Vector2(28.84, 16.16)
+color = Color(0, 0, 0.752941, 1)
+
 [node name="Fruits" type="Node2D" parent="."]
 script = ExtResource("1_cqepb")
 
@@ -13,3 +22,5 @@ script = ExtResource("1_cqepb")
 position = Vector2(579, 324)
 
 [node name="BranchGenerator" parent="Fruits" instance=ExtResource("2_branch_gen")]
+line_trunk_color = Color(0, 0, 0, 1)
+line_branch_color = Color(0, 0, 0, 1)
