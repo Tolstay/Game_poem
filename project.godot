@@ -18,9 +18,15 @@ config/icon="res://icon.svg"
 
 [display]
 
-window/size/window_width_override=1024
-window/size/window_height_override=768
+window/size/viewport_width=256
+window/size/viewport_height=192
+window/size/window_width_override=1280
+window/size/window_height_override=960
 window/stretch/mode="viewport"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/postfx/plugin.cfg")
 
 [input]
 

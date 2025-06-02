@@ -78,12 +78,17 @@ var generator: Node2D
 # 记录本轮参与生成的点
 var points_used_this_round: Array[int] = []
 
+# 记录已实例化果实的节点
+var points_with_fruit: Array[bool] = []
+
 # 折线点管理（为"G"键功能预留）
 var stored_bend_points: Array[Vector2] = []  # 存储的折线点，等待"G"键处理
 var bend_point_segments: Array[int] = []  # 记录每个折线点所属的线段索引
 
 # 生成点场景
 const BRANCH_POINT_SCENE = preload("res://Scence/branch_point.tscn")
+const FRUIT_SCENE = preload("res://Scence/fruit.tscn")
+const BLOODCUT_SCENE = preload("res://Scence/bloodcut.tscn")
 
 func _ready():
 	# 获取生成器引用
@@ -128,6 +133,7 @@ func _record_initial_points():
 			point_nodes.append(child)  # 记录节点引用
 			point_types.append(PointType.TRUNK_POINT)  # 初始点都是trunk点
 			point_parent_segments.append(-1)  # trunk点不属于任何线段
+			points_with_fruit.append(false)  # 初始化果实标记
 
 ## 添加新生成点（trunk点）
 func _add_new_point(pos: Vector2, direction: Vector2 = Vector2.ZERO, node: Node2D = null):
@@ -140,6 +146,7 @@ func _add_new_point(pos: Vector2, direction: Vector2 = Vector2.ZERO, node: Node2
 	point_nodes.append(node)  # 记录节点引用
 	point_types.append(PointType.TRUNK_POINT)  # 新生成的点都是trunk点
 	point_parent_segments.append(-1)  # trunk点不属于任何线段
+	points_with_fruit.append(false)  # 初始化果实标记
 	return new_point_index
 
 ## 添加新的branch_point到管理系统
@@ -153,6 +160,7 @@ func _add_branch_point(pos: Vector2, parent_segment_index: int, node: Node2D) ->
 	point_nodes.append(node)  # 记录节点引用
 	point_types.append(PointType.BRANCH_POINT)  # 标记为branch点
 	point_parent_segments.append(parent_segment_index)  # 记录所属线段
+	points_with_fruit.append(false)  # 初始化果实标记
 	
 	return branch_point_index
 
@@ -172,6 +180,9 @@ func _execute_generation():
 	
 	# 生成完成后，减少参与生成的点的剩余次数
 	_decrease_generation_counts()
+	
+	# 检查是否有终点状态的节点，实例化果实
+	_instantiate_fruits_at_endpoint_nodes()
 
 ## 调用生成器执行生成
 func _call_generator_generate():
@@ -589,6 +600,98 @@ func mark_branch_point_exhausted(point_index: int):
 		point_states[point_index] = 0
 		point_status[point_index] = PointStatus.EXHAUSTED
 
+## 检查是否有终点状态的节点，实例化果实
+func _instantiate_fruits_at_endpoint_nodes():
+	# 确保points_with_fruit数组大小与点位数组同步
+	while points_with_fruit.size() < point_positions.size():
+		points_with_fruit.append(false)
+	
+	for i in range(point_positions.size()):
+		# 检查是否为END_TRUNK或END_BRANCH状态，并且还没有果实
+		if (point_status[i] == PointStatus.END_TRUNK or point_status[i] == PointStatus.END_BRANCH) and not points_with_fruit[i]:
+			# 先实例化bloodcut
+			var bloodcut = BLOODCUT_SCENE.instantiate()
+			bloodcut.global_position = point_positions[i]
+			add_child(bloodcut)
+			print("在点 ", i, " 实例化bloodcut")
+			
+			# 再实例化fruit（fruit会在视觉上遮蔽bloodcut）
+			var fruit = FRUIT_SCENE.instantiate()
+			fruit.global_position = point_positions[i]
+			
+			# 计算fruit的正确旋转方向
+			var fruit_rotation = _calculate_fruit_rotation(i)
+			
+			# 获取fruit的Sprite2D节点并设置旋转
+			var sprite = fruit.get_node("Sprite2D")
+			if sprite:
+				sprite.rotation = fruit_rotation
+				print("设置fruit在点 ", i, " 的旋转角度: ", rad_to_deg(fruit_rotation), " 度")
+			
+			add_child(fruit)
+			points_with_fruit[i] = true  # 标记为已实例化果实
+
+## 计算fruit的旋转角度，使其尾部（负y轴）连接到branch
+func _calculate_fruit_rotation(point_index: int) -> float:
+	# 获取该点的生长方向
+	var growth_direction = Vector2.ZERO
+	if point_index < point_directions.size():
+		growth_direction = point_directions[point_index]
+	
+	# 如果没有方向信息，尝试从父线段计算
+	if growth_direction == Vector2.ZERO:
+		growth_direction = _calculate_growth_direction_from_parent(point_index)
+	
+	# 如果仍然没有方向信息，使用默认方向（向上）
+	if growth_direction == Vector2.ZERO:
+		print("警告：点 ", point_index, " 没有方向信息，使用默认向上方向")
+		growth_direction = Vector2.UP
+	
+	# 计算旋转角度
+	# fruit的正y轴是头，负y轴是尾
+	# 我们希望尾部连接到branch，即正y轴指向branch生长方向
+	# 这样负y轴自然指向branch的来源，实现尾部连接
+	
+	# 计算从默认方向（向上，即Vector2.UP）到growth_direction的旋转角度
+	var rotation_angle = growth_direction.angle() - Vector2.UP.angle()
+	
+	print("点 ", point_index, " 生长方向: ", growth_direction, " 旋转角度: ", rad_to_deg(rotation_angle), " 度")
+	
+	return rotation_angle
+
+## 从父线段计算生长方向
+func _calculate_growth_direction_from_parent(point_index: int) -> Vector2:
+	# 如果是END_BRANCH状态的点，尝试从所属的branch线段计算方向
+	if point_index < point_parent_segments.size():
+		var parent_segment_index = point_parent_segments[point_index]
+		
+		# 对于branch终点，parent_segment为-1，需要特殊处理
+		if parent_segment_index == -1:
+			# 查找以该点为终点的线段
+			for segment_index in range(trunk_segments.size()):
+				var segment = trunk_segments[segment_index]
+				if segment.end_point_index == point_index:
+					# 计算从起点到终点的方向
+					var start_pos = point_positions[segment.start_point_index]
+					var end_pos = point_positions[point_index]
+					return (end_pos - start_pos).normalized()
+		else:
+			# 从父线段计算方向
+			if parent_segment_index < trunk_segments.size():
+				var segment = trunk_segments[parent_segment_index]
+				var start_pos = point_positions[segment.start_point_index]
+				var end_pos = point_positions[segment.end_point_index]
+				return (end_pos - start_pos).normalized()
+	
+	# 如果是END_TRUNK状态，查找最近生成的分支方向
+	if point_index < point_generated_branches.size():
+		var branches = point_generated_branches[point_index]
+		if branches.size() > 0:
+			# 使用最后生成的分支方向
+			return branches[branches.size() - 1]
+	
+	return Vector2.ZERO
+
 ## 创建branch终点（供generator调用）
 func create_branch_endpoint(end_pos: Vector2, direction: Vector2) -> int:
 	# 创建终点branch_point
@@ -606,5 +709,6 @@ func create_branch_endpoint(end_pos: Vector2, direction: Vector2) -> int:
 	point_nodes.append(end_branch_point)
 	point_types.append(PointType.BRANCH_POINT)
 	point_parent_segments.append(-1)  # 终点不属于任何trunk线段
+	points_with_fruit.append(false)  # 初始化果实标记
 	
 	return end_point_index

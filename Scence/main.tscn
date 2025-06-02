@@ -1,10 +1,28 @@
-[gd_scene load_steps=4 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=12 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
+[ext_resource type="Script" uid="uid://23uc0ufxq2kx" path="res://Script/main.gd" id="1_k2005"]
 [ext_resource type="PackedScene" uid="uid://c7rgkc38qy7ty" path="res://Scence/trunk_point.tscn" id="1_vgkri"]
 [ext_resource type="PackedScene" path="res://Scence/branch_generator.tscn" id="2_branch_gen"]
+[ext_resource type="Texture2D" uid="uid://dn7oei1rltqjy" path="res://Asset/flower2.png" id="3_phfla"]
+[ext_resource type="PackedScene" uid="uid://yjgk1khmyjkn" path="res://Scence/movement.tscn" id="4_g1tjp"]
+[ext_resource type="Script" uid="uid://d15nobs3uuxeb" path="res://addons/postfx/nodes/PostFX.gd" id="5_bkjcf"]
+[ext_resource type="Script" uid="uid://bvbw3ejkm2bck" path="res://addons/postfx/scripts/FXBase.gd" id="6_phfla"]
+[ext_resource type="Script" uid="uid://cqqc7s7kp8uem" path="res://addons/postfx/effects/VignetteFX.gd" id="7_k2005"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k2005"]
+atlas = ExtResource("3_phfla")
+region = Rect2(173, 93, 19, 19)
+
+[sub_resource type="Resource" id="Resource_xpfmo"]
+script = ExtResource("7_k2005")
+intensity = 0.4
+color = Color(0, 0, 0, 1)
+enabled = true
+metadata/_custom_type_script = "uid://cqqc7s7kp8uem"
 
 [node name="Main" type="Node2D"]
+script = ExtResource("1_k2005")
 
 [node name="Background" type="CanvasLayer" parent="."]
 layer = -1
@@ -13,6 +31,7 @@ layer = -1
 offset_right = 40.0
 offset_bottom = 40.0
 scale = Vector2(28.84, 16.16)
+mouse_filter = 2
 color = Color(0, 0, 0.752941, 1)
 
 [node name="Fruits" type="Node2D" parent="."]
@@ -21,6 +40,19 @@ script = ExtResource("1_cqepb")
 [node name="First_Point" parent="Fruits" instance=ExtResource("1_vgkri")]
 position = Vector2(579, 324)
 
+[node name="Sprite2D" type="Sprite2D" parent="Fruits/First_Point"]
+texture = SubResource("AtlasTexture_k2005")
+
 [node name="BranchGenerator" parent="Fruits" instance=ExtResource("2_branch_gen")]
 line_trunk_color = Color(0, 0, 0, 1)
 line_branch_color = Color(0, 0, 0, 1)
+
+[node name="Movement" parent="." instance=ExtResource("4_g1tjp")]
+position = Vector2(579, 339)
+
+[node name="Camera2D" type="Camera2D" parent="Movement"]
+
+[node name="PostFX" type="CanvasLayer" parent="."]
+script = ExtResource("5_bkjcf")
+effects = Array[ExtResource("6_phfla")]([SubResource("Resource_xpfmo")])
+metadata/_custom_type_script = "uid://d15nobs3uuxeb"
