@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=5 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
 [ext_resource type="PackedScene" uid="uid://c7rgkc38qy7ty" path="res://Scence/trunk_point.tscn" id="1_vgkri"]
 [ext_resource type="PackedScene" path="res://Scence/branch_generator.tscn" id="2_branch_gen"]
+[ext_resource type="PackedScene" uid="uid://yjgk1khmyjkn" path="res://Scence/movement.tscn" id="4_g1tjp"]
 
 [node name="Main" type="Node2D"]
 
@@ -13,3 +14,8 @@ script = ExtResource("1_cqepb")
 position = Vector2(579, 324)
 
 [node name="BranchGenerator" parent="Fruits" instance=ExtResource("2_branch_gen")]
+
+[node name="Movement" parent="." instance=ExtResource("4_g1tjp")]
+position = Vector2(577, 382)
+
+[node name="Camera2D" type="Camera2D" parent="Movement"]

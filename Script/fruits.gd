@@ -58,20 +58,20 @@ var generator: Node2D
 # 生成参数
 @export var max_generations_per_point: int = 2  # 每个生成点的最大生成次数
 @export var min_branch_points_per_segment: int = 1       # 每线段最少branch_point数（物理约束的最小值）
-@export var max_branch_points_per_segment: int = 4       # 每线段最多branch_point数（物理约束的最大值）
+@export var max_branch_points_per_segment: int = 3       # 每线段最多branch_point数（物理约束的最大值）
 
 # Branch生成参数
-@export var branch_position_min: float = 0.1  # branch_point在线段上的最小位置（0.0-1.0）
-@export var branch_position_max: float = 0.9  # branch_point在线段上的最大位置（0.0-1.0）
+@export var branch_position_min: float = 0.15  # branch_point在线段上的最小位置（0.0-1.0）
+@export var branch_position_max: float = 0.85  # branch_point在线段上的最大位置（0.0-1.0）
 @export var branch_collision_radius: float = 15.0  # branch_point的碰撞半径（决定实际可容纳数量）
 
 # Branch角度控制参数
 @export var branch_min_angle_degrees: float = 30.0  # branch相对trunk的最小角度（度）
-@export var branch_max_angle_degrees: float = 80.0  # branch相对trunk的最大角度（度）
+@export var branch_max_angle_degrees: float = 75.0  # branch相对trunk的最大角度（度）
 
 # Branch长度参数
-@export var branch_min_length: float = 30.0  # branch的最小长度
-@export var branch_max_length: float = 60.0  # branch的最大长度
+@export var branch_min_length: float = 35.0  # branch的最小长度
+@export var branch_max_length: float = 45.0  # branch的最大长度
 
 # 折线点branch生成参数
 @export_group("Bend Point Branch Generation", "bend_branch_")

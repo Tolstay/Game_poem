@@ -6,7 +6,7 @@ extends Node2D
 # 生成参数
 @export var branch_length: float = 100.0
 @export var min_branch_length: float = 60.0  # 分支长度下限
-@export var max_branch_length: float = 120.0  # 分支长度上限
+@export var max_branch_length: float = 80.0  # 分支长度上限
 @export var length_randomness: float = 0.8  # 长度随机化频率 (0.0=固定长度, 1.0=完全随机)
 @export var line_width: float = 3.0
 @export var line_color: Color = Color(0.6, 0.4, 0.2, 1.0)
@@ -17,10 +17,10 @@ extends Node2D
 
 @export_group("Bend System", "bend_")
 @export var bend_min_points: int = 1  # 最小折线点数量
-@export var bend_max_points: int = 3  # 最大折线点数量
+@export var bend_max_points: int = 1     # 最大折线点数量
 @export var bend_probability: float = 1  # 生成折线点的概率
-@export var bend_min_offset: float = 8.0  # 最小垂直偏移距离
-@export var bend_max_offset: float = 20.0  # 最大垂直偏移距离
+@export var bend_min_offset: float = 3.0  # 最小垂直偏移距离
+@export var bend_max_offset: float = 5.0  # 最大垂直偏移距离
 @export var bend_min_segment_length: float = 50.0  # 生成折线点的最小线段长度
 
 # 生成点场景
