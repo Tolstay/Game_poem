@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=15 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
 [ext_resource type="Script" uid="uid://23uc0ufxq2kx" path="res://Script/main.gd" id="1_k2005"]
@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://ch3gpolfg1ss5" path="res://Asset/dither_flowerback.png" id="8_xpfmo"]
 [ext_resource type="Script" uid="uid://8he5irjtsrxn" path="res://Scence/curtain.gd" id="10_iow1c"]
 [ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Scence/signalbus.gd" id="10_xpfmo"]
+[ext_resource type="AudioStream" uid="uid://c0qyan1x2ndtk" path="res://Sound/windrises.wav" id="12_01llu"]
 
 [sub_resource type="Resource" id="Resource_xpfmo"]
 script = ExtResource("7_k2005")
@@ -96,8 +97,13 @@ unique_name_in_owner = true
 wait_time = 3.0
 one_shot = true
 
+[node name="windrises" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+stream = ExtResource("12_01llu")
+
 [connection signal="instantiation_compeleted" from="." to="SubViewportContainer/SubViewport/Front/Curtain" method="_on_main_instantiation_compeleted"]
 [connection signal="fade_in_completed" from="SubViewportContainer/SubViewport/Front/Curtain" to="." method="_on_curtain_fade_in_completed"]
+[connection signal="fade_in_start" from="SubViewportContainer/SubViewport/Front/Curtain" to="." method="_on_curtain_fade_in_start"]
 [connection signal="fade_in_now" from="Signalbus" to="SubViewportContainer/SubViewport/Front/Curtain" method="_on_signalbus_fade_in_now"]
 [connection signal="fruit_picked_now" from="Signalbus" to="." method="_on_signalbus_fruit_picked_now"]
 [connection signal="timeout" from="Timers/Windrises" to="Signalbus" method="_on_windrises_timeout"]
