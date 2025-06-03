@@ -161,6 +161,10 @@ func _pick_object():
 	
 	is_picked = true
 	
+	# 如果是petal，从对应的位置group中移除
+	if object_type == "Petal":
+		_remove_petal_from_position_group()
+	
 	# 启用重力
 	pickable_object.gravity_scale = 1.0
 	
@@ -182,6 +186,21 @@ func _pick_object():
 	# 可以在这里添加特定对象类型的额外行为
 	_handle_object_specific_pickup_behavior()
 
+## 从位置group中移除petal
+func _remove_petal_from_position_group():
+	if not pickable_object:
+		return
+	
+	# 获取petal所属的所有group
+	var groups = pickable_object.get_groups()
+	
+	# 找到并移除位置相关的group
+	for group_name in groups:
+		if group_name.begins_with("petal_position_"):
+			pickable_object.remove_from_group(group_name)
+			print("Petal从group中移除: ", group_name)
+			break
+
 ## 处理不同对象类型的特定行为
 func _handle_object_specific_pickup_behavior():
 	match object_type:
@@ -199,8 +218,3 @@ func get_object_type() -> String:
 ## 检查是否已被摘取（供外部调用）
 func is_object_picked() -> bool:
 	return is_picked
-
-## 手动发出fruit信号（供调试使用）
-func debug_emit_fruit_signal():
-	if object_type == "Fruit":
-		fruit_picked.emit() 

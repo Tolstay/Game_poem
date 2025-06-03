@@ -24,4 +24,5 @@ texture = SubResource("AtlasTexture_isuug")
 
 [node name="Logic" type="Node2D" parent="."]
 
-[node name="Pick_Off" parent="Logic" instance=ExtResource("2_6ly5q")]
+[node name="pickoff" parent="Logic" instance=ExtResource("2_6ly5q")]
+unique_name_in_owner = true

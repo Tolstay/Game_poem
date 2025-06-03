@@ -19,12 +19,14 @@ var fruits_node: Node2D
 
 # Petal基础信息（仅用于生成）
 var petal_positions: Array[Vector2] = []  # 记录所有petal的原始位置
-var petal_nodes: Array[Node] = []  # 记录petal节点引用
 
 # 生成控制参数
 @export_group("Generation Control", "gen_")
 @export var default_trunk_count: int = 1  # 默认trunk生成数量
 @export var default_branch_decoration_count: int = 1  # 默认branch装饰组生成数量
+
+# Petal group名称常量
+const PETAL_GROUP_PREFIX = "petal_position_"
 
 # ==================== 输入处理 ====================
 
@@ -151,9 +153,9 @@ func _ready():
 	# 查找First_Point（支持SubViewport结构）
 	_find_first_point()
 	
-	# 如果启用自动生成，在First_Point周围生成petal
+	# 如果启用自动生成，初始化petal系统
 	if petal_auto_generate and first_point:
-		_generate_petals_around_first_point()
+		_initialize_petal_system()
 
 ## 查找SubViewport结构
 func _find_subviewport_structure():
@@ -185,45 +187,105 @@ func _find_first_point():
 	# 最后尝试直接查找
 	first_point = get_node_or_null("First_Point")
 
-## 在First_Point周围生成petal
-func _generate_petals_around_first_point():
+## 初始化petal系统
+func _initialize_petal_system():
+	# 计算并设置所有petal的预定位置
+	_calculate_petal_positions()
+	
+	# 在预定位置生成petal直到数量达到上限
+	_generate_petals_to_limit()
+
+## 计算petal的预定位置
+func _calculate_petal_positions():
 	if not first_point:
 		return
 	
 	var center_pos = first_point.global_position
 	
-	# 清空现有记录
+	# 清空现有位置记录
 	petal_positions.clear()
-	petal_nodes.clear()
 	
 	# 计算每个petal的角度间隔
 	var angle_step = 2 * PI / petal_count
 	
+	# 计算所有预定位置
 	for i in range(petal_count):
-		# 计算当前petal的角度和位置
 		var angle = i * angle_step
 		var offset = Vector2(cos(angle), sin(angle)) * petal_radius
 		var petal_pos = center_pos + offset
-		
-		# 实例化petal
-		var petal = PETAL_SCENE.instantiate()
-		petal.global_position = petal_pos
-		
-		# 设置petal的旋转（让sprite指向圆心）
-		var sprite2d = petal.get_node("Sprite2D")
-		if sprite2d:
-			# 计算指向圆心的方向
-			var direction_to_center = (center_pos - petal_pos).normalized()
-			# 计算旋转角度（sprite的默认方向是向上，加90度调整 + 180度翻转让头指向圆心）
-			var rotation_angle = direction_to_center.angle() + PI/2 + PI  # +90度 + 180度
-			sprite2d.rotation = rotation_angle
-		
-		# 添加到正确的父节点
-		_add_petal_to_correct_parent(petal)
-		
-		# 记录petal信息
 		petal_positions.append(petal_pos)
-		petal_nodes.append(petal)
+
+## 生成petal直到达到数量上限
+func _generate_petals_to_limit():
+	# 在所有空位生成petal
+	for i in range(petal_count):
+		if _is_position_empty(i):
+			_instantiate_petal_at_position(i)
+
+## 检查指定位置是否为空
+func _is_position_empty(position_index: int) -> bool:
+	var group_name = PETAL_GROUP_PREFIX + str(position_index)
+	var petals_at_position = get_tree().get_nodes_in_group(group_name)
+	
+	# 清理无效的节点
+	for petal in petals_at_position:
+		if not is_instance_valid(petal) or not petal.is_inside_tree():
+			petal.remove_from_group(group_name)
+	
+	# 重新检查该位置是否有有效的petal
+	petals_at_position = get_tree().get_nodes_in_group(group_name)
+	return petals_at_position.size() == 0
+
+## 检查是否还有空位
+func _has_empty_positions() -> bool:
+	for i in range(petal_count):
+		if _is_position_empty(i):
+			return true
+	return false
+
+## 在空位实例化petal（自动寻找空位）
+func _instantiate_petal_at_empty_position():
+	# 寻找第一个空位
+	for i in range(petal_count):
+		if _is_position_empty(i):
+			_instantiate_petal_at_position(i)
+			return
+	
+	print("没有找到空位，无法生成petal")
+
+## 在指定位置实例化petal
+func _instantiate_petal_at_position(position_index: int):
+	if position_index < 0 or position_index >= petal_positions.size():
+		return
+	
+	if not _is_position_empty(position_index):
+		print("位置 ", position_index, " 已被占用，无法生成petal")
+		return
+	
+	var petal_pos = petal_positions[position_index]
+	var center_pos = first_point.global_position
+	
+	# 实例化petal
+	var petal = PETAL_SCENE.instantiate()
+	petal.global_position = petal_pos
+	
+	# 设置petal的旋转（让sprite指向圆心）
+	var sprite2d = petal.get_node("Sprite2D")
+	if sprite2d:
+		# 计算指向圆心的方向
+		var direction_to_center = (center_pos - petal_pos).normalized()
+		# 计算旋转角度（sprite的默认方向是向上，加90度调整 + 180度翻转让头指向圆心）
+		var rotation_angle = direction_to_center.angle() + PI/2 + PI  # +90度 + 180度
+		sprite2d.rotation = rotation_angle
+	
+	# 添加到正确的父节点
+	_add_petal_to_correct_parent(petal)
+	
+	# 将petal添加到对应位置的group中
+	var group_name = PETAL_GROUP_PREFIX + str(position_index)
+	petal.add_to_group(group_name)
+	
+	print("在位置 ", position_index, " 生成了petal，group: ", group_name)
 
 ## 智能选择petal的父节点
 func _add_petal_to_correct_parent(petal: Node):
@@ -236,3 +298,24 @@ func _add_petal_to_correct_parent(petal: Node):
 	# 最后降级到当前节点
 	else:
 		add_child(petal)
+
+## 清理无效的petal节点引用
+func _clean_invalid_petal_references():
+	# 使用group系统，这个方法现在主要用于调试
+	print("=== Petal状态检查 ===")
+	for i in range(petal_count):
+		var group_name = PETAL_GROUP_PREFIX + str(i)
+		var petals_at_position = get_tree().get_nodes_in_group(group_name)
+		print("位置 ", i, ": ", petals_at_position.size(), " 个petal")
+
+func _on_signalbus_fruit_picked_now() -> void:
+	print("main脚本收到信号")
+	# 调试：显示当前状态
+	_clean_invalid_petal_references()
+	
+	# 检查是否有空位
+	if _has_empty_positions():
+		print("找到空位，开始生成petal")
+		_instantiate_petal_at_empty_position()
+	else:
+		print("没有空位可用")

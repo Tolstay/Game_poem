@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=13 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
 [ext_resource type="Script" uid="uid://23uc0ufxq2kx" path="res://Script/main.gd" id="1_k2005"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://bvbw3ejkm2bck" path="res://addons/postfx/scripts/FXBase.gd" id="6_phfla"]
 [ext_resource type="Script" uid="uid://cqqc7s7kp8uem" path="res://addons/postfx/effects/VignetteFX.gd" id="7_k2005"]
 [ext_resource type="Texture2D" uid="uid://ch3gpolfg1ss5" path="res://Asset/dither_flowerback.png" id="8_xpfmo"]
+[ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Scence/signalbus.gd" id="10_xpfmo"]
 
 [sub_resource type="Resource" id="Resource_xpfmo"]
 script = ExtResource("7_k2005")
@@ -73,3 +74,9 @@ line_branch_color = Color(0, 0, 0, 1)
 position = Vector2(579, 339)
 
 [node name="Camera2D" type="Camera2D" parent="SubViewportContainer/SubViewport/Movement"]
+
+[node name="Signalbus" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("10_xpfmo")
+
+[connection signal="fruit_picked_now" from="Signalbus" to="." method="_on_signalbus_fruit_picked_now"]
