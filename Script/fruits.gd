@@ -47,6 +47,9 @@ var segment_labels: Array[Label] = []
 # 生成器引用
 var generator: Node2D
 
+# Fruitlayer节点引用（用于管理所有生成的内容）
+var fruit_layer: Node2D
+
 # 生成参数
 @export var max_generations_per_point: int = 2  # 每个生成点的最大生成次数
 @export var min_branch_points_per_segment: int = 1       # 每线段最少branch_point数（物理约束的最小值）
@@ -57,17 +60,17 @@ var generator: Node2D
 @export var display_segment_labels: bool = false   # 是否显示线段剩余次数标签
 
 # Branch生成参数
-@export var branch_position_min: float = 0.15  # branch_point在线段上的最小位置（0.0-1.0）
-@export var branch_position_max: float = 0.85  # branch_point在线段上的最大位置（0.0-1.0）
-@export var branch_collision_radius: float = 15.0  # branch_point的碰撞半径（决定实际可容纳数量）
+var branch_position_min: float = 0.15  # branch_point在线段上的最小位置（0.0-1.0）
+var branch_position_max: float = 0.85  # branch_point在线段上的最大位置（0.0-1.0）
+var branch_collision_radius: float = 15.0  # branch_point的碰撞半径（决定实际可容纳数量）
 
 # Branch角度控制参数
-@export var branch_min_angle_degrees: float = 40.0  # branch相对trunk的最小角度（度）
-@export var branch_max_angle_degrees: float = 65.0  # branch相对trunk的最大角度（度）
+var branch_min_angle_degrees: float = 40.0  # branch相对trunk的最小角度（度）
+var branch_max_angle_degrees: float = 65.0  # branch相对trunk的最大角度（度）
 
 # Branch长度参数
-@export var branch_min_length: float = 35.0  # branch的最小长度
-@export var branch_max_length: float = 45.0  # branch的最大长度
+var branch_min_length: float = 35.0  # branch的最小长度
+var branch_max_length: float = 45.0  # branch的最大长度
 
 # 折线点branch生成参数
 @export_group("Bend Point Branch Generation", "bend_branch_")
@@ -93,8 +96,34 @@ const BLOODCUT_SCENE = preload("res://Scence/bloodcut.tscn")
 func _ready():
 	# 获取生成器引用
 	generator = $BranchGenerator
+	
+	# 查找或创建Fruitlayer节点
+	_find_or_create_fruit_layer()
+	
 	# 记录初始生成点
 	_record_initial_points()
+
+## 查找或创建Fruitlayer节点
+func _find_or_create_fruit_layer():
+	# 优先查找用户创建的 "Fruitlayer" 节点
+	var existing_fruitlayer = get_parent().get_node_or_null("Fruitlayer")
+	
+	if existing_fruitlayer and existing_fruitlayer is Node2D:
+		# 找到了用户创建的正确类型的Fruitlayer节点
+		fruit_layer = existing_fruitlayer as Node2D
+		print("找到用户创建的Fruitlayer节点（Node2D类型）")
+		print("Fruitlayer节点引用: ", fruit_layer)
+		return
+	
+	# 如果没找到正确的Fruitlayer，检查是否有其他类型的同名节点
+	if existing_fruitlayer:
+		print("警告：找到名为Fruitlayer的节点，但类型为 ", existing_fruitlayer.get_class(), "，无法使用")
+	
+	# 最后的降级方案：创建新节点（理论上不应该需要了）
+	fruit_layer = Node2D.new()
+	fruit_layer.name = "FruitlayerBackup"
+	get_parent().call_deferred("add_child", fruit_layer)
+	print("警告：未找到合适的Fruitlayer节点，创建了备用节点")
 
 # ==================== 输入处理 ====================
 
@@ -318,7 +347,14 @@ func _create_branch_point_at_position(branch_pos: Vector2, segment_index: int) -
 	# 创建branch_point实例
 	var branch_point = BRANCH_POINT_SCENE.instantiate()
 	branch_point.global_position = branch_pos
-	add_child(branch_point)
+	
+	# 添加到Fruitlayer而不是当前节点
+	if fruit_layer:
+		fruit_layer.add_child(branch_point)
+		print("将branch_point添加到Fruitlayer")
+	else:
+		add_child(branch_point)
+		print("警告：Fruitlayer不存在，添加到Fruits节点")
 	
 	# 添加到点位管理系统
 	var branch_point_index = _add_branch_point(branch_pos, segment_index, branch_point)
@@ -415,7 +451,14 @@ func _create_branch_point_at_bend_position(bend_pos: Vector2, segment_index: int
 	
 	var branch_point = BRANCH_POINT_SCENE.instantiate()
 	branch_point.global_position = bend_pos
-	add_child(branch_point)
+	
+	# 添加到Fruitlayer而不是当前节点
+	if fruit_layer:
+		fruit_layer.add_child(branch_point)
+		print("将折线点branch_point添加到Fruitlayer")
+	else:
+		add_child(branch_point)
+		print("警告：Fruitlayer不存在，添加到Fruits节点")
 	
 	var branch_point_index = _add_branch_point(bend_pos, segment_index, branch_point)
 	
@@ -612,8 +655,14 @@ func _instantiate_fruits_at_endpoint_nodes():
 			# 先实例化bloodcut
 			var bloodcut = BLOODCUT_SCENE.instantiate()
 			bloodcut.global_position = point_positions[i]
-			add_child(bloodcut)
-			print("在点 ", i, " 实例化bloodcut")
+			
+			# 添加到Fruitlayer而不是当前节点
+			if fruit_layer:
+				fruit_layer.add_child(bloodcut)
+				print("将bloodcut添加到Fruitlayer，位置: ", point_positions[i])
+			else:
+				add_child(bloodcut)
+				print("警告：Fruitlayer不存在，将bloodcut添加到Fruits节点")
 			
 			# 再实例化fruit（fruit会在视觉上遮蔽bloodcut）
 			var fruit = FRUIT_SCENE.instantiate()
@@ -628,7 +677,14 @@ func _instantiate_fruits_at_endpoint_nodes():
 				sprite.rotation = fruit_rotation
 				print("设置fruit在点 ", i, " 的旋转角度: ", rad_to_deg(fruit_rotation), " 度")
 			
-			add_child(fruit)
+			# 添加到Fruitlayer而不是当前节点
+			if fruit_layer:
+				fruit_layer.add_child(fruit)
+				print("将fruit添加到Fruitlayer，位置: ", point_positions[i])
+			else:
+				add_child(fruit)
+				print("警告：Fruitlayer不存在，将fruit添加到Fruits节点")
+			
 			points_with_fruit[i] = true  # 标记为已实例化果实
 
 ## 计算fruit的旋转角度，使其尾部（负y轴）连接到branch
@@ -697,7 +753,14 @@ func create_branch_endpoint(end_pos: Vector2, direction: Vector2) -> int:
 	# 创建终点branch_point
 	var end_branch_point = BRANCH_POINT_SCENE.instantiate()
 	end_branch_point.global_position = end_pos
-	add_child(end_branch_point)
+	
+	# 添加到Fruitlayer而不是当前节点
+	if fruit_layer:
+		fruit_layer.add_child(end_branch_point)
+		print("将branch终点添加到Fruitlayer，位置: ", end_pos)
+	else:
+		add_child(end_branch_point)
+		print("警告：Fruitlayer不存在，将branch终点添加到Fruits节点")
 	
 	# 添加终点到管理系统
 	var end_point_index = point_positions.size()
@@ -712,3 +775,7 @@ func create_branch_endpoint(end_pos: Vector2, direction: Vector2) -> int:
 	points_with_fruit.append(false)  # 初始化果实标记
 	
 	return end_point_index
+
+## 获取Fruitlayer节点引用（供generator调用）
+func get_fruit_layer() -> Node2D:
+	return fruit_layer

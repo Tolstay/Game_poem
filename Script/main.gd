@@ -9,11 +9,13 @@ const PETAL_SCENE = preload("res://Scence/petal.tscn")
 # Petal实例化参数
 @export_group("Petal Generation", "petal_")
 @export var petal_count: int = 12  # petal数量
-@export var petal_radius: float = 40.0  # 实例化圆形半径
+@export var petal_radius: float = 30.0  # 实例化圆形半径
 @export var petal_auto_generate: bool = true  # 是否在场景启动时自动生成
 
-# First_point引用
+# 重要节点引用
 var first_point: Node2D
+var sub_viewport: SubViewport
+var fruits_node: Node2D
 
 # Fruit信号监控
 var fruit_monitor_timer: Timer
@@ -27,6 +29,9 @@ var removed_petal_indices: Array[int] = []  # 记录已摘除的petal索引
 
 func _ready():
 	print("Main场景初始化")
+	
+	# 首先查找SubViewport相关节点
+	_find_subviewport_nodes()
 	
 	# 查找First_point节点
 	first_point = _find_first_point()
@@ -43,17 +48,46 @@ func _ready():
 	# 延迟连接fruit信号（等待可能的fruit生成）
 	_start_fruit_signal_monitoring()
 
-## 查找First_point节点
+## 查找SubViewport和相关节点
+func _find_subviewport_nodes():
+	var viewport_container = get_node_or_null("SubViewportContainer")
+	if viewport_container:
+		sub_viewport = viewport_container.get_node_or_null("SubViewport")
+		if sub_viewport:
+			fruits_node = sub_viewport.get_node_or_null("Fruits")
+			print("成功找到SubViewport结构")
+			print("  SubViewport: ", sub_viewport)
+			print("  Fruits节点: ", fruits_node)
+		else:
+			print("警告：未找到SubViewport节点")
+	else:
+		print("警告：未找到SubViewportContainer节点")
+
+## 查找First_point节点（适配SubViewport结构）
 func _find_first_point() -> Node2D:
-	# 首先尝试在Fruits节点中查找First_Point
-	var fruits_node = get_node_or_null("Fruits")
+	# 优先在SubViewport结构中查找
 	if fruits_node:
 		var first_point_node = fruits_node.get_node_or_null("First_Point")
 		if first_point_node:
+			print("在SubViewport结构中找到First_Point")
 			return first_point_node
 	
-	# 如果在Fruits中没找到，尝试直接在当前节点下查找
-	return get_node_or_null("First_Point")
+	# 如果SubViewport结构未找到，尝试传统路径
+	var fruits_traditional = get_node_or_null("Fruits")
+	if fruits_traditional:
+		var first_point_node = fruits_traditional.get_node_or_null("First_Point")
+		if first_point_node:
+			print("在传统结构中找到First_Point")
+			return first_point_node
+	
+	# 最后尝试直接在当前节点下查找
+	var direct_first_point = get_node_or_null("First_Point")
+	if direct_first_point:
+		print("直接找到First_Point")
+		return direct_first_point
+	
+	print("错误：无法在任何位置找到First_Point节点")
+	return null
 
 ## 在First_point周围圆形实例化petal
 func _generate_petals_around_first_point():
@@ -113,10 +147,21 @@ func _create_petal_at_position(petal_pos: Vector2, center_pos: Vector2, petal_in
 	# 连接petal的pickoff信号
 	_connect_petal_signals(petal, petal_index)
 	
-	# 添加到场景
-	add_child(petal)
+	# 确定正确的父节点并添加petal
+	_add_petal_to_correct_parent(petal)
 	
 	return petal
+
+## 将petal添加到正确的父节点
+func _add_petal_to_correct_parent(petal: Node):
+	# 如果有SubViewport结构，添加到SubViewport下
+	if sub_viewport:
+		sub_viewport.add_child(petal)
+		print("将petal添加到SubViewport")
+	else:
+		# 否则添加到Main节点下
+		add_child(petal)
+		print("将petal添加到Main节点")
 
 ## 连接petal的pickoff信号
 func _connect_petal_signals(petal: Node, petal_index: int):
@@ -226,13 +271,31 @@ func _regenerate_petal_at_index(petal_index: int):
 	
 	print("在索引 ", petal_index, " 成功重新生成petal")
 
-## 连接所有fruit的信号
+## 连接所有fruit的信号（适配SubViewport结构）
 func _connect_fruit_signals():
-	# 查找场景中所有的fruit并连接信号
+	# 首先在SubViewport结构中查找fruit
+	if sub_viewport:
+		var all_nodes = _get_all_nodes_in_subviewport()
+		for node in all_nodes:
+			if node.scene_file_path.ends_with("fruit.tscn"):
+				_connect_fruit_pickoff_signal(node)
+	
+	# 也检查传统结构（如果有的话）
 	var all_nodes = _get_all_nodes_in_scene()
 	for node in all_nodes:
 		if node.scene_file_path.ends_with("fruit.tscn"):
 			_connect_fruit_pickoff_signal(node)
+
+## 递归获取SubViewport中所有节点
+func _get_all_nodes_in_subviewport(node: Node = null) -> Array[Node]:
+	if node == null:
+		node = sub_viewport if sub_viewport else get_tree().current_scene
+	
+	var all_nodes: Array[Node] = [node]
+	for child in node.get_children():
+		all_nodes.append_array(_get_all_nodes_in_subviewport(child))
+	
+	return all_nodes
 
 ## 递归获取场景中所有节点
 func _get_all_nodes_in_scene(node: Node = null) -> Array[Node]:
@@ -269,13 +332,20 @@ func regenerate_petals():
 	# 重新生成
 	_generate_petals_around_first_point()
 
-## 清除现有的petal
+## 清除现有的petal（适配SubViewport结构）
 func _clear_existing_petals():
-	# 查找并删除所有petal节点
+	# 在SubViewport中查找并删除petal
+	if sub_viewport:
+		for child in sub_viewport.get_children():
+			if child.name.begins_with("Petal") or child.scene_file_path.ends_with("petal.tscn"):
+				child.queue_free()
+				print("删除SubViewport中的petal：", child.name)
+	
+	# 也在Main节点中查找并删除petal（兼容性）
 	for child in get_children():
 		if child.name.begins_with("Petal") or child.scene_file_path.ends_with("petal.tscn"):
 			child.queue_free()
-			print("删除现有petal：", child.name)
+			print("删除Main节点中的petal：", child.name)
 	
 	# 清空跟踪数组
 	petal_positions.clear()
@@ -346,13 +416,20 @@ func _check_for_new_fruits():
 			_connect_fruit_pickoff_signal(fruit)
 			connected_fruits.append(fruit)
 
-## 查找场景中所有的fruit节点
+## 查找场景中所有的fruit节点（适配SubViewport结构）
 func _find_all_fruits() -> Array[Node]:
 	var fruits: Array[Node] = []
-	var all_nodes = _get_all_nodes_in_scene()
 	
-	for node in all_nodes:
-		# 检查节点是否是fruit（通过场景文件路径或名称）
+	# 在SubViewport中查找
+	if sub_viewport:
+		var subviewport_nodes = _get_all_nodes_in_subviewport()
+		for node in subviewport_nodes:
+			if node.scene_file_path.ends_with("fruit.tscn") or "fruit" in node.name.to_lower():
+				fruits.append(node)
+	
+	# 也在主场景中查找（兼容性）
+	var main_nodes = _get_all_nodes_in_scene()
+	for node in main_nodes:
 		if node.scene_file_path.ends_with("fruit.tscn") or "fruit" in node.name.to_lower():
 			fruits.append(node)
 	

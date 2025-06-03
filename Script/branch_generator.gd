@@ -196,15 +196,38 @@ func _create_branch_line(start_pos: Vector2, end_pos: Vector2):
 	line.add_point(to_local(end_pos))
 	line.width = line_width
 	line.default_color = line_branch_color
-	add_child(line)
+	
+	# 获取Fruitlayer节点并添加Line2D
+	var fruits_controller = get_parent()
+	if fruits_controller and fruits_controller.has_method("get_fruit_layer"):
+		var fruit_layer = fruits_controller.get_fruit_layer()
+		if fruit_layer:
+			fruit_layer.add_child(line)
+			print("将branch线段添加到Fruitlayer")
+		else:
+			add_child(line)
+			print("警告：Fruitlayer不存在，将branch线段添加到generator")
+	else:
+		add_child(line)
+		print("警告：无法获取Fruitlayer，将branch线段添加到generator")
 
 ## 在末端创建新的生成点
 func _create_end_point(end_pos: Vector2, fruits_controller, direction: Vector2) -> int:
 	var new_point = TRUNK_POINT_SCENE.instantiate()
 	new_point.global_position = end_pos
 	
-	# 添加到Fruits节点下
-	fruits_controller.add_child(new_point)
+	# 获取Fruitlayer节点并添加trunk点
+	if fruits_controller.has_method("get_fruit_layer"):
+		var fruit_layer = fruits_controller.get_fruit_layer()
+		if fruit_layer:
+			fruit_layer.add_child(new_point)
+			print("将trunk点添加到Fruitlayer，位置: ", end_pos)
+		else:
+			fruits_controller.add_child(new_point)
+			print("警告：Fruitlayer不存在，将trunk点添加到Fruits节点")
+	else:
+		fruits_controller.add_child(new_point)
+		print("警告：无法获取Fruitlayer，将trunk点添加到Fruits节点")
 	
 	# 更新Fruits控制器的记录，传入方向信息和节点引用，并获取新点的索引
 	var new_point_index = fruits_controller._add_new_point(end_pos, direction, new_point)
@@ -640,7 +663,19 @@ func _create_trunk_line_with_bend(points: Array[Vector2]):
 	line.width = line_width
 	line.default_color = line_trunk_color
 	
-	add_child(line)
+	# 获取Fruitlayer节点并添加Line2D
+	var fruits_controller = get_parent()
+	if fruits_controller and fruits_controller.has_method("get_fruit_layer"):
+		var fruit_layer = fruits_controller.get_fruit_layer()
+		if fruit_layer:
+			fruit_layer.add_child(line)
+			print("将弯曲trunk线段添加到Fruitlayer")
+		else:
+			add_child(line)
+			print("警告：Fruitlayer不存在，将trunk线段添加到generator")
+	else:
+		add_child(line)
+		print("警告：无法获取Fruitlayer，将trunk线段添加到generator")
 	
 	# 记录所有线段段落
 	for i in range(points.size() - 1):
