@@ -5,6 +5,9 @@ extends Node
 
 signal fruit_picked_now
 signal fade_in_now
+signal disable_pickoff_interaction  # 新增：禁用pickoff交互信号
+
+var fading:bool = false
 
 # 使用现有的计时器节点
 @onready var windrises_timer: Timer = %Windrises
@@ -25,7 +28,10 @@ func _on_mouse_stopped_moving():
 
 ## 当鼠标开始移动时的处理
 func _on_mouse_started_moving():
-	_stop_all_timers()
+	if fading == false:
+		_stop_all_timers()
+	else:
+		return
 
 ## 停止所有计时器
 func _stop_all_timers():
@@ -37,6 +43,7 @@ func _stop_all_timers():
 
 ## windrises计时器超时处理
 func _on_windrises_timeout():
+	fading = true
 	fade_in_now.emit()
 
 
@@ -64,5 +71,11 @@ func _on_fruit_picked():
 
 
 func _on_still_threshold_timeout() -> void:
+	disable_pickoff_interaction.emit()  # 发出禁用pickoff交互信号
 	windrises_timer.start()
 	print("启动风计时器")
+	print("已发出禁用pickoff交互信号")
+
+
+func _on_curtain_unlocking_pickoff() -> void:
+	fading = false

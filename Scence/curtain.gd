@@ -8,6 +8,7 @@ var fade_tween: Tween
 var colora 
 
 signal fade_in_completed
+signal unlocking_pickoff
 
 func _ready():
 	# 确保curtain有可见的颜色（黑色）
@@ -19,6 +20,7 @@ func _on_signalbus_fade_in_now() -> void:
 	_fade_curtain(1.0)
 	await get_tree().create_timer(2.0).timeout
 	fade_in_completed.emit()
+	unlocking_pickoff.emit()
 
 ## 执行淡入动画
 func _fade_curtain(colora):

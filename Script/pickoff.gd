@@ -15,6 +15,7 @@ var camera: Camera2D
 
 # 状态控制
 var is_picked: bool = false
+var is_interaction_disabled: bool = false  # 新增：控制交互是否被禁用
 
 # 对象类型标识（用于调试）
 var object_type: String = "Unknown"
@@ -35,6 +36,32 @@ func _ready():
 	
 	# 查找Camera2D（用于坐标转换）
 	camera = _find_camera2d()
+	
+	# 连接signalbus的disable_pickoff_interaction信号
+	_connect_signalbus_signals()
+
+## 连接signalbus的信号
+func _connect_signalbus_signals():
+	# 查找signalbus节点，优先使用unique_name方式
+	var signalbus = get_node_or_null("%Signalbus")
+	
+	if signalbus and signalbus.has_signal("disable_pickoff_interaction"):
+		if not signalbus.disable_pickoff_interaction.is_connected(_on_disable_pickoff_interaction):
+			signalbus.disable_pickoff_interaction.connect(_on_disable_pickoff_interaction)
+			print("Pickoff已连接到signalbus的disable_pickoff_interaction信号")
+	else:
+		print("警告：未找到signalbus或disable_pickoff_interaction信号")
+
+## 响应禁用交互信号
+func _on_disable_pickoff_interaction():
+	is_interaction_disabled = true
+	print("Pickoff交互已被禁用 - ", object_type)
+	await get_tree().create_timer(3.0).timeout
+	is_interaction_disabled = false
+
+## 检查交互是否被禁用（供外部调用）
+func is_interaction_enabled() -> bool:
+	return not is_interaction_disabled
 
 ## 查找场景中的Camera2D节点
 func _find_camera2d() -> Camera2D:
@@ -110,8 +137,8 @@ func _determine_object_type(node_name: String) -> String:
 		return "PickableObject"
 
 func _input(event):
-	if is_picked:
-		return  # 如果已经被摘取，不再处理输入
+	if is_picked or is_interaction_disabled:  # 修改：同时检查是否被禁用
+		return  # 如果已经被摘取或交互被禁用，不再处理输入
 	
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
