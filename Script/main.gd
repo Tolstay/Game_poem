@@ -36,7 +36,6 @@ func _input(_event):
 ## 执行协调生成（trunk组 + branch装饰组）
 func _execute_coordinated_generation(trunk_count: int, branch_decoration_count: int):
 	if not fruits_node:
-		print("错误：无法找到fruits节点")
 		return
 	
 	# 记录生成前的统计数据
@@ -146,8 +145,6 @@ func _generate_decorations_at_points(point_indices: Array[int]):
 # ==================== 现有代码保持不变 ====================
 
 func _ready():
-	print("Main场景初始化")
-	
 	# 首先查找SubViewport相关节点
 	_find_subviewport_structure()
 	

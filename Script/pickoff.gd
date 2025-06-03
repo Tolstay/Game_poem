@@ -23,7 +23,6 @@ func _ready():
 	# 自动查找父层级中的RigidBody2D节点
 	pickable_object = _find_parent_rigidbody()
 	if not pickable_object:
-		print("错误：无法找到父级RigidBody2D节点")
 		return
 	
 	# 确定对象类型（用于调试信息）
@@ -32,17 +31,10 @@ func _ready():
 	# 获取碰撞形状
 	collision_shape = _find_collision_shape(pickable_object)
 	if not collision_shape:
-		print("错误：无法在 ", object_type, " 中找到碰撞形状")
 		return
 	
 	# 查找Camera2D（用于坐标转换）
 	camera = _find_camera2d()
-	if camera:
-		print("找到Camera2D，可以进行坐标转换")
-	else:
-		print("未找到Camera2D，使用默认坐标系")
-	
-	print("Pickoff脚本初始化完成，", object_type, " 位置: ", pickable_object.global_position)
 
 ## 查找场景中的Camera2D节点
 func _find_camera2d() -> Camera2D:
@@ -126,28 +118,17 @@ func _input(event):
 			# 获取正确的鼠标世界坐标
 			var mouse_world_pos = _get_mouse_world_position()
 			
-			print("检测到鼠标左键点击")
-			print("  原始鼠标位置：", event.global_position)
-			print("  世界坐标位置：", mouse_world_pos)
-			if camera:
-				print("  Camera位置：", camera.global_position)
-			
 			# 检查鼠标点击是否在对象的碰撞区域内
 			if _is_mouse_in_object_collision(mouse_world_pos):
-				print("点击命中", object_type, "碰撞区域！")
 				_pick_object()
-			else:
-				print("点击未命中", object_type, "碰撞区域")
 
 ## 检查鼠标位置是否在对象的碰撞区域内
 func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 	if not pickable_object or not collision_shape:
-		print("检查碰撞失败：pickable_object或collision_shape为空")
 		return false
 	
 	# 将鼠标世界坐标转换为对象的本地坐标
 	var local_mouse_pos = pickable_object.to_local(mouse_pos)
-	print(object_type, " 全局位置: ", pickable_object.global_position, " 鼠标世界位置: ", mouse_pos, " 本地位置: ", local_mouse_pos)
 	
 	# 检查不同类型的碰撞形状
 	var shape = collision_shape.shape
@@ -155,14 +136,12 @@ func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 	if shape is CircleShape2D:
 		var circle_shape = shape as CircleShape2D
 		var distance = local_mouse_pos.length()
-		print("圆形碰撞检测：距离=", distance, " 半径=", circle_shape.radius, " 结果=", distance <= circle_shape.radius)
 		return distance <= circle_shape.radius
 		
 	elif shape is RectangleShape2D:
 		var rect_shape = shape as RectangleShape2D
 		var half_size = rect_shape.size / 2.0
 		var in_bounds = abs(local_mouse_pos.x) <= half_size.x and abs(local_mouse_pos.y) <= half_size.y
-		print("矩形碰撞检测：位置=", local_mouse_pos, " 半尺寸=", half_size, " 结果=", in_bounds)
 		return in_bounds
 		
 	elif shape is CapsuleShape2D:
@@ -170,11 +149,9 @@ func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 		# 简化为圆形检测（可以更精确实现）
 		var distance = local_mouse_pos.length()
 		var effective_radius = max(capsule_shape.radius, capsule_shape.height / 2.0)
-		print("胶囊碰撞检测：距离=", distance, " 有效半径=", effective_radius, " 结果=", distance <= effective_radius)
 		return distance <= effective_radius
 	
 	else:
-		print("不支持的碰撞形状类型：", shape.get_class())
 		return false
 
 ## 摘取对象 - 应用重力并垂直落下
@@ -182,7 +159,6 @@ func _pick_object():
 	if is_picked or not pickable_object:
 		return
 	
-	print(object_type, " 被摘取！开始下落...")
 	is_picked = true
 	
 	# 启用重力
@@ -202,7 +178,6 @@ func _pick_object():
 	# 发出基础信号
 	if object_type == "Fruit":
 		fruit_picked.emit()
-		print("发出 fruit_picked 信号")
 	
 	# 可以在这里添加特定对象类型的额外行为
 	_handle_object_specific_pickup_behavior()
@@ -211,13 +186,11 @@ func _pick_object():
 func _handle_object_specific_pickup_behavior():
 	match object_type:
 		"Fruit":
-			print("执行Fruit特定的摘取行为")
-			# 可以添加果实特有的效果，比如音效、粒子等
+			pass  # 可以添加果实特有的效果，比如音效、粒子等
 		"Petal":
-			print("执行Petal特定的摘取行为")
-			# 可以添加花瓣特有的效果，比如飘落动画等
+			pass  # 可以添加花瓣特有的效果，比如飘落动画等
 		_:
-			print("执行通用摘取行为")
+			pass  # 执行通用摘取行为
 
 ## 获取对象类型（供外部调用）
 func get_object_type() -> String:
@@ -230,5 +203,4 @@ func is_object_picked() -> bool:
 ## 手动发出fruit信号（供调试使用）
 func debug_emit_fruit_signal():
 	if object_type == "Fruit":
-		fruit_picked.emit()
-		print("手动发出fruit_picked信号") 
+		fruit_picked.emit() 
