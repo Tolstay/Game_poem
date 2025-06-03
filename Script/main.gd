@@ -45,9 +45,6 @@ var last_mouse_position: Vector2
 var mouse_still_timer: float = 0.0
 var is_mouse_still: bool = false
 
-# 不能停止声音
-var cant_stop_wind:bool = false
-
 # ==================== 输入处理 ====================
 
 func _input(_event):
@@ -81,9 +78,6 @@ func _execute_coordinated_generation(trunk_count: int, branch_decoration_count: 
 	print("本次生成trunk: ", generated_trunks, " 个，现有trunk总数: ", final_trunk_count, " 个")
 	print("本次生成branch: ", generated_branches, " 个，现有branch总数: ", final_branch_count, " 个")
 	instantiation_compeleted.emit()
-	
-	cant_stop_wind = false
-	print("可以停止风")
 
 ## 获取当前trunk数量
 func _get_current_trunk_count() -> int:
@@ -203,14 +197,6 @@ func _update_mouse_detection(delta: float):
 			# 如果之前是静止状态，发出移动信号
 			mouse_started_moving.emit()
 			is_mouse_still = false
-			
-			
-			if windrises.playing and cant_stop_wind == false:
-				var tween = create_tween()
-				tween.tween_property(windrises, "volume_db", -80.0, 1.8)
-				await get_tree().create_timer(1.85).timeout
-				windrises.stop()
-				
 		
 		# 重置计时器
 		mouse_still_timer = 0.0
@@ -394,8 +380,3 @@ func _on_signalbus_fruit_picked_now() -> void:
 
 func _on_curtain_fade_in_completed() -> void:
 	_execute_coordinated_generation(1,1) ## 后面要修改为对应的累进数值
-
-
-func _on_curtain_fade_in_start() -> void:
-	cant_stop_wind = true
-	print("不能停止风")

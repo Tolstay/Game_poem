@@ -8,7 +8,6 @@ var fade_tween: Tween
 var colora 
 
 signal fade_in_completed
-signal fade_in_start
 
 func _ready():
 	# 确保curtain有可见的颜色（黑色）
@@ -18,7 +17,6 @@ func _ready():
 
 func _on_signalbus_fade_in_now() -> void:
 	_fade_curtain(1.0)
-	fade_in_start.emit()
 	await get_tree().create_timer(2.0).timeout
 	fade_in_completed.emit()
 

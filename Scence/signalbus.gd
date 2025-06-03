@@ -8,6 +8,7 @@ signal fade_in_now
 
 # 使用现有的计时器节点
 @onready var windrises_timer: Timer = %Windrises
+@onready var still_threshold: Timer = %StillThreshold
 @onready var curtain: ColorRect = %Curtain
 
 func _ready():
@@ -20,7 +21,7 @@ func _physics_process(delta: float) -> void:
 ## 当鼠标停止移动时的处理
 func _on_mouse_stopped_moving():
 	print("鼠标静止，启动windrises计时器")
-	windrises_timer.start()
+	still_threshold.start()
 
 ## 当鼠标开始移动时的处理
 func _on_mouse_started_moving():
@@ -30,6 +31,8 @@ func _on_mouse_started_moving():
 func _stop_all_timers():
 	if windrises_timer.time_left > 0:
 		windrises_timer.stop()
+	if still_threshold.time_left > 0:
+		still_threshold.stop()
 
 
 ## windrises计时器超时处理
@@ -58,3 +61,8 @@ func _connect_pickoff_signals_recursive(node: Node):
 func _on_fruit_picked():
 	fruit_picked_now.emit()
 	print("接收到信号")
+
+
+func _on_still_threshold_timeout() -> void:
+	windrises_timer.start()
+	print("启动风计时器")

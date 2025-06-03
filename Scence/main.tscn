@@ -61,6 +61,7 @@ metadata/_edit_use_anchors_ = true
 unique_name_in_owner = true
 offset_right = 257.0
 offset_bottom = 193.0
+mouse_filter = 2
 color = Color(0, 0, 0, 0)
 script = ExtResource("10_iow1c")
 
@@ -92,18 +93,24 @@ script = ExtResource("10_xpfmo")
 
 [node name="Timers" type="Node" parent="."]
 
-[node name="Windrises" type="Timer" parent="Timers"]
+[node name="StillThreshold" type="Timer" parent="Timers"]
 unique_name_in_owner = true
 wait_time = 3.0
 one_shot = true
 
-[node name="windrises" type="AudioStreamPlayer" parent="."]
+[node name="Windrises" type="Timer" parent="Timers"]
+unique_name_in_owner = true
+one_shot = true
+
+[node name="Sounds" type="Node" parent="."]
+
+[node name="windrises" type="AudioStreamPlayer" parent="Sounds"]
 unique_name_in_owner = true
 stream = ExtResource("12_01llu")
 
 [connection signal="instantiation_compeleted" from="." to="SubViewportContainer/SubViewport/Front/Curtain" method="_on_main_instantiation_compeleted"]
 [connection signal="fade_in_completed" from="SubViewportContainer/SubViewport/Front/Curtain" to="." method="_on_curtain_fade_in_completed"]
-[connection signal="fade_in_start" from="SubViewportContainer/SubViewport/Front/Curtain" to="." method="_on_curtain_fade_in_start"]
 [connection signal="fade_in_now" from="Signalbus" to="SubViewportContainer/SubViewport/Front/Curtain" method="_on_signalbus_fade_in_now"]
 [connection signal="fruit_picked_now" from="Signalbus" to="." method="_on_signalbus_fruit_picked_now"]
+[connection signal="timeout" from="Timers/StillThreshold" to="Signalbus" method="_on_still_threshold_timeout"]
 [connection signal="timeout" from="Timers/Windrises" to="Signalbus" method="_on_windrises_timeout"]
