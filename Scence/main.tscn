@@ -34,10 +34,12 @@ offset_right = 40.0
 offset_bottom = 40.0
 
 [node name="SubViewport" type="SubViewport" parent="SubViewportContainer"]
+handle_input_locally = false
 anisotropic_filtering_level = 0
 canvas_item_default_texture_filter = 0
 canvas_item_default_texture_repeat = 1
 size = Vector2i(256, 192)
+render_target_update_mode = 4
 
 [node name="Background" type="CanvasLayer" parent="SubViewportContainer/SubViewport"]
 layer = -2
@@ -56,12 +58,14 @@ metadata/_edit_use_anchors_ = true
 script = ExtResource("1_cqepb")
 
 [node name="First_Point" parent="SubViewportContainer/SubViewport/Fruits" instance=ExtResource("1_vgkri")]
+unique_name_in_owner = true
 position = Vector2(579, 324)
 
 [node name="Heart" type="Sprite2D" parent="SubViewportContainer/SubViewport/Fruits/First_Point"]
 texture = SubResource("AtlasTexture_k2005")
 
 [node name="BranchGenerator" parent="SubViewportContainer/SubViewport/Fruits" instance=ExtResource("2_branch_gen")]
+unique_name_in_owner = true
 line_trunk_color = Color(0, 0, 0, 1)
 line_branch_color = Color(0, 0, 0, 1)
 

@@ -44,6 +44,49 @@ func generate():
 	
 	_generate_branches_from_available_points(fruits_controller)
 
+## 从单个指定点生成trunk（供严格控制数量使用）
+func generate_from_single_point(point_index: int):
+	print("生成器执行单点生成操作，点索引: ", point_index)
+	# 获取父节点（Fruits）
+	var fruits_controller = get_parent()
+	if not fruits_controller:
+		return
+	
+	_generate_branch_from_single_point(fruits_controller, point_index)
+
+## 从单个指定点生成分支
+func _generate_branch_from_single_point(fruits_controller, point_index: int):
+	var point_positions = fruits_controller.point_positions
+	var point_states = fruits_controller.point_states
+	var point_directions = fruits_controller.point_directions
+	var point_types = fruits_controller.point_types
+	
+	# 检查点索引是否有效
+	if point_index >= point_positions.size():
+		print("错误：点索引超出范围")
+		return
+	
+	# 检查该点是否为TRUNK_POINT类型且还有生成次数
+	if point_states[point_index] <= 0 or point_types[point_index] != fruits_controller.PointType.TRUNK_POINT:
+		print("错误：指定点不可用于生成")
+		return
+	
+	var original_direction = Vector2.ZERO
+	if point_index < point_directions.size():
+		original_direction = point_directions[point_index]
+	
+	# 获取该点已生成的分支方向
+	var existing_branches = fruits_controller.get_point_generated_branches(point_index)
+	
+	# 尝试生成分支，如果成功则标记该点并记录分支方向
+	var generation_result = _generate_single_branch(point_positions[point_index], fruits_controller, original_direction, existing_branches, point_index)
+	if generation_result.success:
+		fruits_controller._mark_point_used(point_index)
+		fruits_controller._record_generated_branch(point_index, generation_result.direction)
+	else:
+		# 无法生成有效路径，设置为无空间状态
+		fruits_controller.set_point_no_space(point_index)
+
 ## 从所有可用生成点生成分支
 func _generate_branches_from_available_points(fruits_controller):
 	var point_positions = fruits_controller.point_positions

@@ -111,35 +111,16 @@ func _find_or_create_fruit_layer():
 	if existing_fruitlayer and existing_fruitlayer is Node2D:
 		# 找到了用户创建的正确类型的Fruitlayer节点
 		fruit_layer = existing_fruitlayer as Node2D
-		print("找到用户创建的Fruitlayer节点（Node2D类型）")
-		print("Fruitlayer节点引用: ", fruit_layer)
 		return
 	
-	# 如果没找到正确的Fruitlayer，检查是否有其他类型的同名节点
-	if existing_fruitlayer:
-		print("警告：找到名为Fruitlayer的节点，但类型为 ", existing_fruitlayer.get_class(), "，无法使用")
-	
-	# 最后的降级方案：创建新节点（理论上不应该需要了）
+	# 如果没找到正确的Fruitlayer，创建备用节点
 	fruit_layer = Node2D.new()
 	fruit_layer.name = "FruitlayerBackup"
 	get_parent().call_deferred("add_child", fruit_layer)
-	print("警告：未找到合适的Fruitlayer节点，创建了备用节点")
 
 # ==================== 输入处理 ====================
 
-func _input(_event):
-	# 响应generate输入映射（空格键：生成trunk带折线）
-	if Input.is_action_just_pressed("generate"):
-		_execute_generation()
-	# 响应branch_generate输入映射（G键：完整branch生成：点位+线段）
-	elif Input.is_action_just_pressed("branch_generate"):
-		_execute_complete_branch_generation()
-	# 响应branch_point_generate输入映射（B键：独立生成branch_point，保留用于精细控制）
-	elif Input.is_action_just_pressed("branch_point_generate"):
-		_execute_branch_point_generation()
-	# 响应bend_branch_generate映射（F键：在存储的折线点生成branch_point）
-	elif Input.is_action_just_pressed("bend_branch_generate"):
-		_execute_bend_point_branch_generation()
+# 删除原有的 _input() 方法和相关的执行方法
 
 # ==================== 初始化和数据管理 ====================
 
@@ -194,24 +175,6 @@ func _add_branch_point(pos: Vector2, parent_segment_index: int, node: Node2D) ->
 	return branch_point_index
 
 # ==================== Trunk生成 ====================
-
-## 执行trunk生成操作
-func _execute_generation():
-	# 检查是否有可用的生成点
-	if get_available_points_count() == 0:
-		return
-	
-	# 清空本轮使用记录
-	points_used_this_round.clear()
-	
-	# 调用生成器的生成方法
-	_call_generator_generate()
-	
-	# 生成完成后，减少参与生成的点的剩余次数
-	_decrease_generation_counts()
-	
-	# 检查是否有终点状态的节点，实例化果实
-	_instantiate_fruits_at_endpoint_nodes()
 
 ## 调用生成器执行生成
 func _call_generator_generate():
@@ -278,32 +241,6 @@ func _record_trunk_segment(start_point_index: int, end_point_index: int):
 
 # ==================== Branch点生成 ====================
 
-## 执行完整的branch生成操作（点位生成 + branch线段生成）
-func _execute_complete_branch_generation():
-	# 检查是否有可用的trunk线段
-	var available_segments = _get_available_trunk_segments()
-	if available_segments.size() == 0:
-		return
-	
-	# 尝试生成branch_point
-	var new_branch_point_index = _try_generate_branch_point_anywhere(available_segments)
-	if new_branch_point_index == -1:
-		return
-	
-	# 立即从新生成的branch_point生成branch线段
-	if generator and generator.has_method("generate_branch_from_specific_point"):
-		generator.generate_branch_from_specific_point(new_branch_point_index)
-
-## 执行branch_point生成操作
-func _execute_branch_point_generation():
-	var available_segments = _get_available_trunk_segments()
-	if available_segments.size() == 0:
-		return
-	
-	# 调用generator生成branch点
-	if generator and generator.has_method("generate_branch_point"):
-		generator.generate_branch_point(available_segments)
-
 ## 在任意可用线段上尝试生成branch_point（统一接口）
 func _try_generate_branch_point_anywhere(available_segments: Array[int]) -> int:
 	# 调用generator尝试生成branch点
@@ -351,10 +288,8 @@ func _create_branch_point_at_position(branch_pos: Vector2, segment_index: int) -
 	# 添加到Fruitlayer而不是当前节点
 	if fruit_layer:
 		fruit_layer.add_child(branch_point)
-		print("将branch_point添加到Fruitlayer")
 	else:
 		add_child(branch_point)
-		print("警告：Fruitlayer不存在，添加到Fruits节点")
 	
 	# 添加到点位管理系统
 	var branch_point_index = _add_branch_point(branch_pos, segment_index, branch_point)
@@ -420,27 +355,6 @@ func get_segment_curve_points(segment_index: int) -> Array[Vector2]:
 		var end_pos = point_positions[segment.end_point_index]
 		return [start_pos, end_pos]
 
-## 执行折线点branch生成操作
-func _execute_bend_point_branch_generation():
-	if stored_bend_points.size() == 0:
-		return
-	
-	var generation_count = 0
-	var max_generations = min(stored_bend_points.size(), 5)
-	
-	# 遍历所有折线点，按概率尝试生成branch_point
-	for i in range(stored_bend_points.size()):
-		if generation_count >= max_generations:
-			break
-			
-		var bend_point = stored_bend_points[i]
-		var segment_index = bend_point_segments[i] if i < bend_point_segments.size() else -1
-		
-		# 概率检查和碰撞检查
-		if randf() < bend_branch_probability and not _check_bend_point_collision(bend_point):
-			_create_branch_point_at_bend_position(bend_point, segment_index)
-			generation_count += 1
-
 ## 在折线点位置创建branch_point
 func _create_branch_point_at_bend_position(bend_pos: Vector2, segment_index: int):
 	# 检查线段是否还有容量
@@ -455,10 +369,8 @@ func _create_branch_point_at_bend_position(bend_pos: Vector2, segment_index: int
 	# 添加到Fruitlayer而不是当前节点
 	if fruit_layer:
 		fruit_layer.add_child(branch_point)
-		print("将折线点branch_point添加到Fruitlayer")
 	else:
 		add_child(branch_point)
-		print("警告：Fruitlayer不存在，添加到Fruits节点")
 	
 	var branch_point_index = _add_branch_point(bend_pos, segment_index, branch_point)
 	
@@ -659,10 +571,8 @@ func _instantiate_fruits_at_endpoint_nodes():
 			# 添加到Fruitlayer而不是当前节点
 			if fruit_layer:
 				fruit_layer.add_child(bloodcut)
-				print("将bloodcut添加到Fruitlayer，位置: ", point_positions[i])
 			else:
 				add_child(bloodcut)
-				print("警告：Fruitlayer不存在，将bloodcut添加到Fruits节点")
 			
 			# 再实例化fruit（fruit会在视觉上遮蔽bloodcut）
 			var fruit = FRUIT_SCENE.instantiate()
@@ -675,15 +585,12 @@ func _instantiate_fruits_at_endpoint_nodes():
 			var sprite = fruit.get_node("Sprite2D")
 			if sprite:
 				sprite.rotation = fruit_rotation
-				print("设置fruit在点 ", i, " 的旋转角度: ", rad_to_deg(fruit_rotation), " 度")
 			
 			# 添加到Fruitlayer而不是当前节点
 			if fruit_layer:
 				fruit_layer.add_child(fruit)
-				print("将fruit添加到Fruitlayer，位置: ", point_positions[i])
 			else:
 				add_child(fruit)
-				print("警告：Fruitlayer不存在，将fruit添加到Fruits节点")
 			
 			points_with_fruit[i] = true  # 标记为已实例化果实
 
@@ -700,7 +607,6 @@ func _calculate_fruit_rotation(point_index: int) -> float:
 	
 	# 如果仍然没有方向信息，使用默认方向（向上）
 	if growth_direction == Vector2.ZERO:
-		print("警告：点 ", point_index, " 没有方向信息，使用默认向上方向")
 		growth_direction = Vector2.UP
 	
 	# 计算旋转角度
@@ -710,8 +616,6 @@ func _calculate_fruit_rotation(point_index: int) -> float:
 	
 	# 计算从默认方向（向上，即Vector2.UP）到growth_direction的旋转角度
 	var rotation_angle = growth_direction.angle() - Vector2.UP.angle()
-	
-	print("点 ", point_index, " 生长方向: ", growth_direction, " 旋转角度: ", rad_to_deg(rotation_angle), " 度")
 	
 	return rotation_angle
 
@@ -757,10 +661,8 @@ func create_branch_endpoint(end_pos: Vector2, direction: Vector2) -> int:
 	# 添加到Fruitlayer而不是当前节点
 	if fruit_layer:
 		fruit_layer.add_child(end_branch_point)
-		print("将branch终点添加到Fruitlayer，位置: ", end_pos)
 	else:
 		add_child(end_branch_point)
-		print("警告：Fruitlayer不存在，将branch终点添加到Fruits节点")
 	
 	# 添加终点到管理系统
 	var end_point_index = point_positions.size()
@@ -779,3 +681,141 @@ func create_branch_endpoint(end_pos: Vector2, direction: Vector2) -> int:
 ## 获取Fruitlayer节点引用（供generator调用）
 func get_fruit_layer() -> Node2D:
 	return fruit_layer
+
+# ==================== 供Main脚本调用的接口方法 ====================
+
+## 执行单次trunk生成（供main调用）
+func execute_trunk_generation() -> bool:
+	# 检查是否有可用的生成点
+	if get_available_points_count() == 0:
+		return false
+	
+	# 清空本轮使用记录
+	points_used_this_round.clear()
+	
+	# 选择一个可用点进行单次生成
+	var selected_point = _select_single_available_point()
+	if selected_point == -1:
+		return false
+	
+	# 调用生成器对单个点进行生成
+	_call_generator_generate_from_single_point(selected_point)
+	
+	# 生成完成后，减少参与生成的点的剩余次数
+	_decrease_generation_counts()
+	
+	# 检查是否有终点状态的节点，实例化果实
+	_instantiate_fruits_at_endpoint_nodes()
+	
+	return points_used_this_round.size() > 0  # 如果有点参与生成则返回成功
+
+## 选择一个可用的生成点
+func _select_single_available_point() -> int:
+	var available_points: Array[int] = []
+	
+	for i in range(point_positions.size()):
+		if point_states[i] > 0 and point_status[i] == PointStatus.AVAILABLE:
+			available_points.append(i)
+	
+	if available_points.size() == 0:
+		return -1
+	
+	# 随机选择一个可用点，或者可以实现其他选择策略
+	return available_points[randi() % available_points.size()]
+
+## 调用生成器对单个点进行生成
+func _call_generator_generate_from_single_point(point_index: int):
+	if generator and generator.has_method("generate_from_single_point"):
+		generator.generate_from_single_point(point_index)
+	else:
+		# 降级到原有方法，但标记只有这一个点可用
+		_mark_point_used(point_index)
+		if generator and generator.has_method("generate"):
+			generator.generate()
+
+## 执行单次branch生成（供main调用）
+func execute_branch_generation() -> bool:
+	# 检查是否有可用的trunk线段
+	var available_segments = _get_available_trunk_segments()
+	if available_segments.size() == 0:
+		return false
+	
+	# 尝试生成branch_point
+	var new_branch_point_index = _try_generate_branch_point_anywhere(available_segments)
+	if new_branch_point_index == -1:
+		return false
+	
+	# 立即从新生成的branch_point生成branch线段
+	if generator and generator.has_method("generate_branch_from_specific_point"):
+		generator.generate_branch_from_specific_point(new_branch_point_index)
+		return true
+	else:
+		return false
+
+## 获取所有END_BRANCH状态的点索引（供main调用）
+func get_end_branch_points() -> Array[int]:
+	var end_branch_points: Array[int] = []
+	for i in range(point_status.size()):
+		if point_status[i] == PointStatus.END_BRANCH:
+			end_branch_points.append(i)
+	return end_branch_points
+
+## 在指定点位生成bloodcut（供main调用）
+func generate_bloodcut_at_point(point_index: int):
+	if point_index >= point_positions.size():
+		return
+	
+	var point_position = point_positions[point_index]
+	var bloodcut = BLOODCUT_SCENE.instantiate()
+	bloodcut.global_position = point_position
+	
+	# 添加到Fruitlayer
+	if fruit_layer:
+		fruit_layer.add_child(bloodcut)
+	else:
+		add_child(bloodcut)
+
+## 在指定点位生成fruit（供main调用）
+func generate_fruit_at_point(point_index: int):
+	if point_index >= point_positions.size():
+		return
+	
+	if point_index < points_with_fruit.size() and points_with_fruit[point_index]:
+		return
+	
+	var point_position = point_positions[point_index]
+	var fruit = FRUIT_SCENE.instantiate()
+	fruit.global_position = point_position
+	
+	# 计算fruit的正确旋转方向
+	var fruit_rotation = _calculate_fruit_rotation(point_index)
+	
+	# 获取fruit的Sprite2D节点并设置旋转
+	var sprite = fruit.get_node("Sprite2D")
+	if sprite:
+		sprite.rotation = fruit_rotation
+	
+	# 添加到Fruitlayer
+	if fruit_layer:
+		fruit_layer.add_child(fruit)
+	else:
+		add_child(fruit)
+	
+	# 标记为已生成fruit
+	while points_with_fruit.size() <= point_index:
+		points_with_fruit.append(false)
+	points_with_fruit[point_index] = true
+
+## 获取当前trunk数量（供main调用）
+func get_trunk_count() -> int:
+	# 统计trunk线段数量
+	return trunk_segments.size()
+
+## 获取当前branch数量（供main调用）
+func get_branch_count() -> int:
+	# 统计END_BRANCH状态的点数量（每个branch会产生一个END_BRANCH点）
+	var branch_count = 0
+	for i in range(point_status.size()):
+		if point_status[i] == PointStatus.END_BRANCH:
+			branch_count += 1
+	return branch_count

@@ -3,9 +3,8 @@ extends Node2D
 ## 通用Pickoff脚本
 ## 处理任何对象（fruit、petal等）的鼠标交互和重力应用
 
-# 信号定义
+# 基础信号定义
 signal fruit_picked()  # 当fruit被摘除时发出
-signal object_picked(object_type: String, object_node: Node)  # 通用对象被摘除信号
 
 # 引用父节点（可以是fruit、petal或任何RigidBody2D对象）
 var pickable_object: RigidBody2D
@@ -200,22 +199,13 @@ func _pick_object():
 	# 可选：添加一个小的向下初始速度，确保开始下落
 	pickable_object.linear_velocity.y = 50.0
 	
-	# 发出信号
-	_emit_pickup_signals()
-	
-	# 可以在这里添加特定对象类型的额外行为
-	_handle_object_specific_pickup_behavior()
-
-## 发出摘取信号
-func _emit_pickup_signals():
-	# 发出通用对象摘取信号
-	object_picked.emit(object_type, pickable_object)
-	print("发出 object_picked 信号，类型：", object_type)
-	
-	# 如果是Fruit类型，发出特殊的fruit_picked信号
+	# 发出基础信号
 	if object_type == "Fruit":
 		fruit_picked.emit()
 		print("发出 fruit_picked 信号")
+	
+	# 可以在这里添加特定对象类型的额外行为
+	_handle_object_specific_pickup_behavior()
 
 ## 处理不同对象类型的特定行为
 func _handle_object_specific_pickup_behavior():
