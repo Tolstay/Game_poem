@@ -3,6 +3,13 @@ extends Node2D
 ## Main场景脚本
 ## 负责场景初始化、petal圆形实例化和生成交互控制
 
+@onready var signalbus: Node = %Signalbus
+
+# 鼠标静止检测信号
+signal mouse_stopped_moving
+signal mouse_started_moving
+signal instantiation_compeleted
+
 # Petal场景引用
 const PETAL_SCENE = preload("res://Scence/petal.tscn")
 
@@ -11,6 +18,10 @@ const PETAL_SCENE = preload("res://Scence/petal.tscn")
 @export var petal_count: int = 12  # petal数量
 @export var petal_radius: float = 30.0  # 实例化圆形半径
 @export var petal_auto_generate: bool = true  # 是否在场景启动时自动生成
+
+# 鼠标静止检测参数
+@export_group("Mouse Detection", "mouse_")
+@export var mouse_still_time: float = 2.0  # 鼠标静止多少秒后触发
 
 # 重要节点引用
 var first_point: Node2D
@@ -27,6 +38,11 @@ var petal_positions: Array[Vector2] = []  # 记录所有petal的原始位置
 
 # Petal group名称常量
 const PETAL_GROUP_PREFIX = "petal_position_"
+
+# 鼠标静止检测变量
+var last_mouse_position: Vector2
+var mouse_still_timer: float = 0.0
+var is_mouse_still: bool = false
 
 # ==================== 输入处理 ====================
 
@@ -60,6 +76,7 @@ func _execute_coordinated_generation(trunk_count: int, branch_decoration_count: 
 	print("=== 生成统计 ===")
 	print("本次生成trunk: ", generated_trunks, " 个，现有trunk总数: ", final_trunk_count, " 个")
 	print("本次生成branch: ", generated_branches, " 个，现有branch总数: ", final_branch_count, " 个")
+	instantiation_compeleted.emit()
 
 ## 获取当前trunk数量
 func _get_current_trunk_count() -> int:
@@ -156,6 +173,41 @@ func _ready():
 	# 如果启用自动生成，初始化petal系统
 	if petal_auto_generate and first_point:
 		_initialize_petal_system()
+	
+	# 连接signalbus信号
+	if signalbus:
+		mouse_stopped_moving.connect(signalbus._on_mouse_stopped_moving)
+		mouse_started_moving.connect(signalbus._on_mouse_started_moving)
+	
+	# 初始化鼠标位置
+	last_mouse_position = get_global_mouse_position()
+
+func _process(delta):
+	_update_mouse_detection(delta)
+
+## 更新鼠标静止检测
+func _update_mouse_detection(delta: float):
+	var current_mouse_pos = get_global_mouse_position()
+	
+	# 检查鼠标是否移动了
+	if current_mouse_pos != last_mouse_position:
+		# 鼠标移动了
+		if is_mouse_still:
+			# 如果之前是静止状态，发出移动信号
+			mouse_started_moving.emit()
+			is_mouse_still = false
+		
+		# 重置计时器
+		mouse_still_timer = 0.0
+		last_mouse_position = current_mouse_pos
+	else:
+		# 鼠标没有移动，累积时间
+		mouse_still_timer += delta
+		
+		# 检查是否达到静止时间阈值
+		if mouse_still_timer >= mouse_still_time and not is_mouse_still:
+			is_mouse_still = true
+			mouse_stopped_moving.emit()
 
 ## 查找SubViewport结构
 func _find_subviewport_structure():
@@ -249,6 +301,7 @@ func _instantiate_petal_at_empty_position():
 	for i in range(petal_count):
 		if _is_position_empty(i):
 			_instantiate_petal_at_position(i)
+			instantiation_compeleted.emit()
 			return
 	
 	print("没有找到空位，无法生成petal")
@@ -319,3 +372,6 @@ func _on_signalbus_fruit_picked_now() -> void:
 		_instantiate_petal_at_empty_position()
 	else:
 		print("没有空位可用")
+
+func _on_curtain_fade_in_completed() -> void:
+	_execute_coordinated_generation(1,1) ## 后面要修改为对应的累进数值

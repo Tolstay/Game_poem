@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=14 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
 [ext_resource type="Script" uid="uid://23uc0ufxq2kx" path="res://Script/main.gd" id="1_k2005"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://bvbw3ejkm2bck" path="res://addons/postfx/scripts/FXBase.gd" id="6_phfla"]
 [ext_resource type="Script" uid="uid://cqqc7s7kp8uem" path="res://addons/postfx/effects/VignetteFX.gd" id="7_k2005"]
 [ext_resource type="Texture2D" uid="uid://ch3gpolfg1ss5" path="res://Asset/dither_flowerback.png" id="8_xpfmo"]
+[ext_resource type="Script" uid="uid://8he5irjtsrxn" path="res://Scence/curtain.gd" id="10_iow1c"]
 [ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Scence/signalbus.gd" id="10_xpfmo"]
 
 [sub_resource type="Resource" id="Resource_xpfmo"]
@@ -53,6 +54,15 @@ mouse_filter = 2
 color = Color(0, 0, 0.752941, 1)
 metadata/_edit_use_anchors_ = true
 
+[node name="Front" type="CanvasLayer" parent="SubViewportContainer/SubViewport"]
+
+[node name="Curtain" type="ColorRect" parent="SubViewportContainer/SubViewport/Front"]
+unique_name_in_owner = true
+offset_right = 257.0
+offset_bottom = 193.0
+color = Color(0, 0, 0, 0)
+script = ExtResource("10_iow1c")
+
 [node name="Fruitlayer" type="Node2D" parent="SubViewportContainer/SubViewport"]
 
 [node name="Fruits" type="Node2D" parent="SubViewportContainer/SubViewport"]
@@ -79,4 +89,15 @@ position = Vector2(579, 339)
 unique_name_in_owner = true
 script = ExtResource("10_xpfmo")
 
+[node name="Timers" type="Node" parent="."]
+
+[node name="Windrises" type="Timer" parent="Timers"]
+unique_name_in_owner = true
+wait_time = 3.0
+one_shot = true
+
+[connection signal="instantiation_compeleted" from="." to="SubViewportContainer/SubViewport/Front/Curtain" method="_on_main_instantiation_compeleted"]
+[connection signal="fade_in_completed" from="SubViewportContainer/SubViewport/Front/Curtain" to="." method="_on_curtain_fade_in_completed"]
+[connection signal="fade_in_now" from="Signalbus" to="SubViewportContainer/SubViewport/Front/Curtain" method="_on_signalbus_fade_in_now"]
 [connection signal="fruit_picked_now" from="Signalbus" to="." method="_on_signalbus_fruit_picked_now"]
+[connection signal="timeout" from="Timers/Windrises" to="Signalbus" method="_on_windrises_timeout"]

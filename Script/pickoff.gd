@@ -218,3 +218,8 @@ func get_object_type() -> String:
 ## 检查是否已被摘取（供外部调用）
 func is_object_picked() -> bool:
 	return is_picked
+
+## 手动发出fruit信号（供调试使用）
+func debug_emit_fruit_signal():
+	if object_type == "Fruit":
+		fruit_picked.emit()

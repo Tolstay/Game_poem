@@ -4,9 +4,38 @@ extends Node
 ## 用于处理全局信号通信
 
 signal fruit_picked_now
-	
+signal fade_in_now
+
+# 使用现有的计时器节点
+@onready var windrises_timer: Timer = %Windrises
+@onready var curtain: ColorRect = %Curtain
+
+func _ready():
+	# 连接计时器信号
+	windrises_timer.timeout.connect(_on_windrises_timeout)
+
 func _physics_process(delta: float) -> void:
 	_connect_all_pickoff_signals()
+
+## 当鼠标停止移动时的处理
+func _on_mouse_stopped_moving():
+	print("鼠标静止，启动windrises计时器")
+	windrises_timer.start()
+
+## 当鼠标开始移动时的处理
+func _on_mouse_started_moving():
+	_stop_all_timers()
+
+## 停止所有计时器
+func _stop_all_timers():
+	if windrises_timer.time_left > 0:
+		windrises_timer.stop()
+
+
+## windrises计时器超时处理
+func _on_windrises_timeout():
+	fade_in_now.emit()
+
 
 ## 连接所有pickoff节点的信号
 func _connect_all_pickoff_signals():
