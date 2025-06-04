@@ -29,6 +29,11 @@ var mouse_down_position: Vector2
 var original_sprite_position: Vector2
 var sprite_node: Sprite2D
 
+# 掉落动画相关
+var fall_tween: Tween
+var original_sprite_rotation: float
+var original_sprite_scale: Vector2
+
 # 对象类型标识（用于调试）
 var object_type: String = "Unknown"
 
@@ -56,6 +61,8 @@ func _ready():
 	sprite_node = _find_sprite2d(pickable_object)
 	if sprite_node:
 		original_sprite_position = sprite_node.position
+		original_sprite_rotation = sprite_node.rotation
+		original_sprite_scale = sprite_node.scale
 
 ## 连接signalbus的信号
 func _connect_signalbus_signals():
@@ -283,10 +290,21 @@ func _apply_shake_animation():
 	
 	sprite_node.position = original_sprite_position + shake_offset
 
-## 重置Sprite位置
+## 重置Sprite位置和属性
 func _reset_sprite_position():
 	if sprite_node:
 		sprite_node.position = original_sprite_position
+		sprite_node.rotation = original_sprite_rotation
+		sprite_node.scale = original_sprite_scale
+	
+	# 停止掉落动画
+	_stop_falling_animation()
+
+## 停止掉落动画
+func _stop_falling_animation():
+	if fall_tween:
+		fall_tween.kill()
+		fall_tween = null
 
 ## 摘取对象 - 应用重力并垂直落下
 func _pick_object():
@@ -299,19 +317,8 @@ func _pick_object():
 	if object_type == "Petal":
 		_remove_petal_from_position_group()
 	
-	# 启用重力
-	pickable_object.gravity_scale = 1.0
-	
-	# 清除之前的速度，确保垂直落下
-	pickable_object.linear_velocity = Vector2.ZERO
-	pickable_object.angular_velocity = 0.0
-	
-	# 设置碰撞层和碰撞掩码，让对象可以与地面等碰撞
-	pickable_object.collision_layer = 1
-	pickable_object.collision_mask = 1
-	
-	# 可选：添加一个小的向下初始速度，确保开始下落
-	pickable_object.linear_velocity.y = 50.0
+	# 设置羽毛般的轻柔掉落效果
+	_apply_feather_like_falling()
 	
 	# 发出基础信号
 	if object_type == "Fruit":
@@ -319,6 +326,75 @@ func _pick_object():
 	
 	# 可以在这里添加特定对象类型的额外行为
 	_handle_object_specific_pickup_behavior()
+
+## 应用羽毛般的轻柔掉落效果
+func _apply_feather_like_falling():
+	if not pickable_object:
+		return
+	
+	# 设置轻柔的重力
+	pickable_object.gravity_scale = 0.15  # 大幅降低重力影响
+	
+	# 清除之前的速度
+	pickable_object.linear_velocity = Vector2.ZERO
+	pickable_object.angular_velocity = 0.0
+	
+	# 设置空气阻力，让对象像羽毛一样慢慢下落
+	pickable_object.linear_damp = 3.0  # 线性阻尼，减缓下落速度
+	pickable_object.angular_damp = 2.0  # 角度阻尼，减缓旋转
+	
+	# 设置碰撞层和碰撞掩码
+	pickable_object.collision_layer = 1
+	pickable_object.collision_mask = 1
+	
+	# 给一个非常轻柔的初始下落速度
+	pickable_object.linear_velocity.y = 15.0  # 很小的初始下落速度
+	
+	# 添加一点随机的横向飘动，模拟空气流动
+	var random_horizontal = randf_range(-10.0, 10.0)
+	pickable_object.linear_velocity.x = random_horizontal
+	
+	# 添加轻微的随机旋转，增加飘落真实感
+	var random_rotation = randf_range(-0.5, 0.5)
+	pickable_object.angular_velocity = random_rotation
+	
+	# 启动掉落动画（旋转和缩放）
+	_start_falling_animation()
+
+## 启动掉落动画
+func _start_falling_animation():
+	if not sprite_node:
+		return
+	
+	# 创建Tween节点
+	if fall_tween:
+		fall_tween.kill()
+	fall_tween = create_tween()
+	fall_tween.set_loops()  # 设置为循环动画
+	
+	# 旋转动画 - 缓慢旋转一整圈
+	var rotation_tween = create_tween()
+	rotation_tween.set_loops()
+	rotation_tween.tween_property(sprite_node, "rotation", 
+		original_sprite_rotation + TAU, 8.0)  # 8秒转一圈
+	rotation_tween.set_ease(Tween.EASE_IN_OUT)
+	rotation_tween.set_trans(Tween.TRANS_SINE)
+	
+	# 缩放动画 - 缓慢缩小到消失
+	var scale_tween = create_tween()
+	scale_tween.tween_property(sprite_node, "scale", 
+		original_sprite_scale * 0.1, 8.0)  # 8秒内缩小到10%
+	scale_tween.set_ease(Tween.EASE_OUT)
+	scale_tween.set_trans(Tween.TRANS_QUAD)
+	
+	# 缩放动画完成后销毁对象
+	scale_tween.tween_callback(_destroy_pickable_object)
+
+## 销毁pickable对象
+func _destroy_pickable_object():
+	if pickable_object and is_instance_valid(pickable_object):
+		print("销毁掉落对象: ", object_type)
+		pickable_object.queue_free()
 
 ## 从位置group中移除petal
 func _remove_petal_from_position_group():
