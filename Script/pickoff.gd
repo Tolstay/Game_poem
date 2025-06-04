@@ -73,7 +73,7 @@ func _connect_signalbus_signals():
 	if signalbus and signalbus.has_signal("disable_pickoff_interaction"):
 		if not signalbus.disable_pickoff_interaction.is_connected(_on_disable_pickoff_interaction):
 			signalbus.disable_pickoff_interaction.connect(_on_disable_pickoff_interaction)
-			print("已连接到disable_pickoff_interaction信号")
+		
 	else:
 		print("警告：未找到signalbus或disable_pickoff_interaction信号")
 	
@@ -81,18 +81,18 @@ func _connect_signalbus_signals():
 	if signalbus and signalbus.has_signal("able_pickoff_interaction"):
 		if not signalbus.able_pickoff_interaction.is_connected(_on_able_pickoff_interaction):
 			signalbus.able_pickoff_interaction.connect(_on_able_pickoff_interaction)
-			print("已连接到able_pickoff_interaction信号")
+		
 	else:
 		print("警告：未找到signalbus或able_pickoff_interaction信号")
 
 ## 响应禁用交互信号
 func _on_disable_pickoff_interaction():
 	is_interaction_disabled = true
-	print("Pickoff交互已被禁用 - ", object_type)
+
 	
 func _on_able_pickoff_interaction():
 	is_interaction_disabled = false
-	print("解除交互禁用")
+
 
 ## 检查交互是否被禁用（供外部调用）
 func is_interaction_enabled() -> bool:
@@ -398,7 +398,7 @@ func _start_falling_animation():
 ## 销毁pickable对象
 func _destroy_pickable_object():
 	if pickable_object and is_instance_valid(pickable_object):
-		print("销毁掉落对象: ", object_type)
+
 		pickable_object.queue_free()
 
 ## 从位置group中移除petal
@@ -413,7 +413,7 @@ func _remove_petal_from_position_group():
 	for group_name in groups:
 		if group_name.begins_with("petal_position_"):
 			pickable_object.remove_from_group(group_name)
-			print("Petal从group中移除: ", group_name)
+
 			break
 
 ## 处理不同对象类型的特定行为

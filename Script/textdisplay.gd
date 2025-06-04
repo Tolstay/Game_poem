@@ -28,13 +28,12 @@ func _ready():
 	# 查找父层级的RigidBody2D
 	parent_rigidbody = _find_parent_rigidbody()
 	if not parent_rigidbody:
-		print("Warning: TextDisplay - 未找到父RigidBody2D")
 		return
 	
 	# 查找碰撞形状
 	collision_shape = _find_collision_shape(parent_rigidbody)
 	if not collision_shape:
-		print("Warning: TextDisplay - 未找到CollisionShape2D")
+
 		return
 	
 	# 查找Camera2D
@@ -57,8 +56,6 @@ func _ready():
 	typing_timer.wait_time = typing_speed
 	typing_timer.timeout.connect(_on_typing_timer_timeout)
 	add_child(typing_timer)
-	
-	print("TextDisplay initialized for: ", parent_rigidbody.name)
 
 func _process(_delta):
 	# 检测鼠标悬停（只在对象未被摘取时）

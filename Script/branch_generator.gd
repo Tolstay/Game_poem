@@ -36,7 +36,6 @@ const TRUNK_POINT_SCENE = preload("res://Scence/trunk_point.tscn")
 var existing_lines: Array[Dictionary] = []
 
 func generate():
-	print("生成器执行生成操作")
 	# 获取父节点（Fruits）的可用生成点
 	var fruits_controller = get_parent()
 	if not fruits_controller:
@@ -46,7 +45,6 @@ func generate():
 
 ## 从单个指定点生成trunk（供严格控制数量使用）
 func generate_from_single_point(point_index: int):
-	print("生成器执行单点生成操作，点索引: ", point_index)
 	# 获取父节点（Fruits）
 	var fruits_controller = get_parent()
 	if not fruits_controller:
@@ -63,12 +61,10 @@ func _generate_branch_from_single_point(fruits_controller, point_index: int):
 	
 	# 检查点索引是否有效
 	if point_index >= point_positions.size():
-		print("错误：点索引超出范围")
 		return
-	
+
 	# 检查该点是否为TRUNK_POINT类型且还有生成次数
 	if point_states[point_index] <= 0 or point_types[point_index] != fruits_controller.PointType.TRUNK_POINT:
-		print("错误：指定点不可用于生成")
 		return
 	
 	var original_direction = Vector2.ZERO
@@ -146,7 +142,6 @@ func _generate_single_branch(start_pos: Vector2, fruits_controller, original_dir
 		
 		attempt += 1
 	
-	print("无法找到不交叉且角度合适的路径，跳过此生成点")
 	return {"success": false, "direction": Vector2.ZERO}
 
 ## 生成符合角度要求的方向
@@ -246,13 +241,10 @@ func _create_branch_line(start_pos: Vector2, end_pos: Vector2):
 		var fruit_layer = fruits_controller.get_fruit_layer()
 		if fruit_layer:
 			fruit_layer.add_child(line)
-			print("将branch线段添加到Fruitlayer")
 		else:
 			add_child(line)
-			print("警告：Fruitlayer不存在，将branch线段添加到generator")
 	else:
 		add_child(line)
-		print("警告：无法获取Fruitlayer，将branch线段添加到generator")
 
 ## 在末端创建新的生成点
 func _create_end_point(end_pos: Vector2, fruits_controller, direction: Vector2) -> int:
@@ -264,13 +256,10 @@ func _create_end_point(end_pos: Vector2, fruits_controller, direction: Vector2) 
 		var fruit_layer = fruits_controller.get_fruit_layer()
 		if fruit_layer:
 			fruit_layer.add_child(new_point)
-			print("将trunk点添加到Fruitlayer，位置: ", end_pos)
 		else:
 			fruits_controller.add_child(new_point)
-			print("警告：Fruitlayer不存在，将trunk点添加到Fruits节点")
 	else:
 		fruits_controller.add_child(new_point)
-		print("警告：无法获取Fruitlayer，将trunk点添加到Fruits节点")
 	
 	# 更新Fruits控制器的记录，传入方向信息和节点引用，并获取新点的索引
 	var new_point_index = fruits_controller._add_new_point(end_pos, direction, new_point)
@@ -299,11 +288,9 @@ func _record_branch_line(start_pos: Vector2, end_pos: Vector2):
 		"start": start_pos,
 		"end": end_pos
 	})
-	print("记录branch线段: ", start_pos, " -> ", end_pos)
 
 ## 生成branch线段（由fruits.gd调用）
 func generate_branch():
-	print("生成器执行branch生成操作")
 	var fruits_controller = get_parent()
 	if not fruits_controller:
 		return
@@ -311,7 +298,6 @@ func generate_branch():
 	# 获取可用的branch_point
 	var available_branch_points = _get_available_branch_points(fruits_controller)
 	if available_branch_points.size() == 0:
-		print("没有可用的branch_point用于生成branch")
 		return
 	
 	# 随机选择一个可用的branch_point
@@ -320,7 +306,6 @@ func generate_branch():
 
 ## 从指定的branch_point生成branch线段（新增方法，用于完整branch生成）
 func generate_branch_from_specific_point(branch_point_index: int):
-	print("从指定点位生成branch：", branch_point_index)
 	var fruits_controller = get_parent()
 	if not fruits_controller:
 		return
@@ -338,7 +323,6 @@ func _get_available_branch_points(fruits_controller) -> Array[int]:
 ## 从指定的branch_point生成branch线段
 func _generate_branch_from_point(branch_point_index: int, fruits_controller):
 	if branch_point_index >= fruits_controller.point_positions.size():
-		print("错误：branch_point索引超出范围")
 		return
 	
 	var branch_start_pos = fruits_controller.point_positions[branch_point_index]
@@ -347,7 +331,6 @@ func _generate_branch_from_point(branch_point_index: int, fruits_controller):
 	# 计算trunk的方向
 	var trunk_direction = _calculate_trunk_direction(parent_segment_index, fruits_controller)
 	if trunk_direction == Vector2.ZERO:
-		print("无法计算trunk方向")
 		return
 	
 	# 尝试生成branch线段
@@ -363,15 +346,10 @@ func _generate_branch_from_point(branch_point_index: int, fruits_controller):
 			# 没有碰撞，创建完整的branch
 			_create_complete_branch(branch_point_index, branch_start_pos, branch_end_pos, branch_direction, fruits_controller)
 			return
-		else:
-			print("Branch生成尝试 ", attempt + 1, " 发生碰撞，重新尝试")
-	
-	print("无法为branch_point ", branch_point_index, " 找到有效的branch生成位置")
 
 ## 计算trunk的生长方向
 func _calculate_trunk_direction(segment_index: int, fruits_controller) -> Vector2:
 	if segment_index < 0 or segment_index >= fruits_controller.trunk_segments.size():
-		print("错误：无效的trunk线段索引")
 		return Vector2.ZERO
 	
 	var segment = fruits_controller.trunk_segments[segment_index]
@@ -382,12 +360,10 @@ func _calculate_trunk_direction(segment_index: int, fruits_controller) -> Vector
 	var curve_points = _get_segment_curve_points(segment_index, fruits_controller)
 	if curve_points.size() <= 2:
 		# 直线线段，返回起点到终点的方向
-		print("线段 ", segment_index, " 为直线，使用起点到终点方向")
 		return (end_pos - start_pos).normalized()
 	
 	# 弯曲线段，需要计算branch_point位置处的切线方向
 	# 这里我们使用线段的平均方向作为近似（更精确的方法需要知道具体的branch_point位置）
-	print("线段 ", segment_index, " 为弯曲线段，计算平均切线方向")
 	return _calculate_average_tangent_direction(curve_points)
 
 ## 计算弯曲路径的平均切线方向
@@ -452,9 +428,6 @@ func _create_complete_branch(start_point_index: int, start_pos: Vector2, end_pos
 	
 	# 创建终点branch_point
 	var end_point_index = fruits_controller.create_branch_endpoint(end_pos, direction)
-	
-	print("成功生成branch：从点 ", start_point_index, " 到点 ", end_point_index)
-	print("Branch方向: ", direction, " 长度: ", start_pos.distance_to(end_pos))
 
 ## 供fruits调用的新接口方法 ====================
 
@@ -462,7 +435,6 @@ func _create_complete_branch(start_point_index: int, start_pos: Vector2, end_pos
 func create_complete_branch(start_point_index: int, start_pos: Vector2, end_pos: Vector2, direction: Vector2):
 	var fruits_controller = get_parent()
 	if not fruits_controller:
-		print("错误：无法获取fruits控制器")
 		return
 	_create_complete_branch(start_point_index, start_pos, end_pos, direction, fruits_controller)
 
@@ -470,7 +442,6 @@ func create_complete_branch(start_point_index: int, start_pos: Vector2, end_pos:
 func generate_branch_point(available_segments: Array[int]) -> bool:
 	var fruits_controller = get_parent()
 	if not fruits_controller:
-		print("错误：无法获取fruits控制器")
 		return false
 	
 	var max_attempts = available_segments.size() * 3
@@ -481,19 +452,16 @@ func generate_branch_point(available_segments: Array[int]) -> bool:
 		
 		var new_point_index = try_generate_branch_point_on_segment(random_segment_index)
 		if new_point_index != -1:
-			print("成功在线段 ", random_segment_index, " 上生成branch_point，索引：", new_point_index)
 			return true
 		
 		attempts += 1
 	
-	print("警告：尝试了 ", max_attempts, " 次仍无法生成branch_point")
 	return false
 
 ## 在任意可用线段上尝试生成branch点（供fruits调用）
 func try_generate_branch_point_anywhere(available_segments: Array[int]) -> int:
 	var fruits_controller = get_parent()
 	if not fruits_controller:
-		print("错误：无法获取fruits控制器")
 		return -1
 	
 	var max_attempts = available_segments.size() * 3
@@ -504,30 +472,25 @@ func try_generate_branch_point_anywhere(available_segments: Array[int]) -> int:
 		
 		var new_point_index = try_generate_branch_point_on_segment(random_segment_index)
 		if new_point_index != -1:
-			print("成功在线段 ", random_segment_index, " 上生成branch_point，索引：", new_point_index)
 			return new_point_index
 		
 		attempts += 1
 	
-	print("警告：尝试了 ", max_attempts, " 次仍无法生成branch_point")
 	return -1
 
 ## 在指定线段上尝试生成branch点（供fruits调用）
 func try_generate_branch_point_on_segment(segment_index: int) -> int:
 	var fruits_controller = get_parent()
 	if not fruits_controller:
-		print("错误：无法获取fruits控制器")
 		return -1
 	
 	# 检查线段是否还能创建branch点
 	if not fruits_controller.can_segment_create_branch_point(segment_index):
-		print("线段 ", segment_index, " 无法创建更多branch点")
 		return -1
 	
 	# 获取线段数据
 	var segment_data = fruits_controller.get_segment_data(segment_index)
 	if segment_data.is_empty():
-		print("错误：无法获取线段数据")
 		return -1
 	
 	# 在该线段上尝试多个位置（使用曲线采样）
@@ -539,10 +502,8 @@ func try_generate_branch_point_on_segment(segment_index: int) -> int:
 		if fruits_controller.can_create_branch_point_at(branch_pos):
 			# 位置有效，创建branch_point
 			var new_point_index = fruits_controller.create_branch_point_at_position(branch_pos, segment_index)
-			print("使用曲线采样在线段 ", segment_index, " 上生成branch_point，位置: ", branch_pos, " 索引: ", new_point_index)
 			return new_point_index
 	
-	print("在线段 ", segment_index, " 上尝试了 ", position_attempts, " 个位置都发生碰撞")
 	return -1
 
 ## 曲线采样branch位置生成 ====================
@@ -558,11 +519,9 @@ func _generate_branch_position_on_curve(segment_data: Dictionary, segment_index:
 	var curve_points = _get_segment_curve_points(segment_index, fruits_controller)
 	if curve_points.size() <= 2:
 		# 如果没有弯曲数据，使用直线插值
-		print("线段 ", segment_index, " 没有弯曲数据，使用直线插值")
 		return _generate_branch_position_linear(segment_data)
 	
 	# 使用曲线采样
-	print("线段 ", segment_index, " 使用曲线采样，路径点数: ", curve_points.size())
 	return _sample_curve_at_ratio(curve_points, randf_range(fruits_controller.branch_position_min, fruits_controller.branch_position_max))
 
 ## 获取线段的弯曲路径点
@@ -580,7 +539,6 @@ func _get_segment_curve_points(segment_index: int, fruits_controller) -> Array[V
 ## 在曲线上按比例采样位置
 func _sample_curve_at_ratio(curve_points: Array[Vector2], ratio: float) -> Vector2:
 	if curve_points.size() < 2:
-		print("错误：曲线点数量不足")
 		return Vector2.ZERO
 	
 	if curve_points.size() == 2:
@@ -609,13 +567,11 @@ func _sample_curve_at_ratio(curve_points: Array[Vector2], ratio: float) -> Vecto
 			var local_ratio = local_distance / segment_length if segment_length > 0 else 0.0
 			
 			var sampled_pos = curve_points[i].lerp(curve_points[i + 1], local_ratio)
-			print("曲线采样: 总长度=", total_length, " 目标距离=", target_distance, " 线段=", i, " 局部比例=", local_ratio, " 位置=", sampled_pos)
 			return sampled_pos
 		
 		accumulated_distance += segment_length
 	
 	# 如果没有找到（理论上不应该发生），返回终点
-	print("警告：曲线采样未找到合适位置，返回终点")
 	return curve_points[curve_points.size() - 1]
 
 ## 直线插值branch位置生成（降级方案）
@@ -631,15 +587,8 @@ func _generate_branch_position_linear(segment_data: Dictionary) -> Vector2:
 
 ## 生成trunk线段（由fruits.gd调用，支持弯曲）
 func generate_trunk_with_bend(start_pos: Vector2, end_pos: Vector2, fruits_controller, segment_index: int):
-	print("生成器执行带弯曲的trunk生成操作")
-	print("起点: ", start_pos, " 终点: ", end_pos, " 距离: ", start_pos.distance_to(end_pos), " 线段索引: ", segment_index)
-	
 	# 计算包含折线点的完整路径
 	var all_points = _calculate_bend_points(start_pos, end_pos)
-	
-	print("生成的路径包含 ", all_points.size(), " 个点")
-	for i in range(all_points.size()):
-		print("  点 ", i, ": ", all_points[i])
 	
 	# 创建弯曲的trunk线段
 	_create_trunk_line_with_bend(all_points)
@@ -671,8 +620,6 @@ func _calculate_bend_points(start_pos: Vector2, end_pos: Vector2) -> Array[Vecto
 		var max_count = max(min_count, bend_max_points)
 		bend_count = randi_range(min_count, max_count)  # bend_min_points到bend_max_points
 	
-	print("生成 ", bend_count, " 个折线点（范围: ", bend_min_points, "-", bend_max_points, "）")
-	
 	# 生成中间折线点
 	for i in range(bend_count):
 		# 计算沿线段的位置（等分）
@@ -683,8 +630,6 @@ func _calculate_bend_points(start_pos: Vector2, end_pos: Vector2) -> Array[Vecto
 		var offset_direction = 1.0 if randf() > 0.5 else -1.0  # 随机选择偏移方向
 		var offset_amount = randf_range(bend_min_offset, bend_max_offset) * offset_direction
 		var offset_point = base_point + perpendicular * offset_amount
-		
-		print("  折线点 ", i + 1, ": 基础位置 ", base_point, " 偏移量 ", offset_amount, " (范围: ", bend_min_offset, "-", bend_max_offset, ")")
 		
 		points.append(offset_point)
 	
@@ -712,13 +657,10 @@ func _create_trunk_line_with_bend(points: Array[Vector2]):
 		var fruit_layer = fruits_controller.get_fruit_layer()
 		if fruit_layer:
 			fruit_layer.add_child(line)
-			print("将弯曲trunk线段添加到Fruitlayer")
 		else:
 			add_child(line)
-			print("警告：Fruitlayer不存在，将trunk线段添加到generator")
 	else:
 		add_child(line)
-		print("警告：无法获取Fruitlayer，将trunk线段添加到generator")
 	
 	# 记录所有线段段落
 	for i in range(points.size() - 1):

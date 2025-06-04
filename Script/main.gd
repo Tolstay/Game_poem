@@ -36,6 +36,14 @@ var petal_positions: Array[Vector2] = []  # 记录所有petal的原始位置
 @export var default_trunk_count: int = 1  # 默认trunk生成数量
 @export var default_branch_decoration_count: int = 1  # 默认branch装饰组生成数量
 
+# 曲线控制生成数量
+@export_group("Generation Curves", "curve_")
+@export var trunk_generation_curve: Curve  # 控制trunk生成数量的曲线
+@export var branch_generation_curve: Curve  # 控制branch生成数量的曲线
+
+# 交互计数器
+var interaction_counter: int = 0
+
 # Petal group名称常量
 const PETAL_GROUP_PREFIX = "petal_position_"
 
@@ -49,22 +57,27 @@ var is_mouse_still: bool = false
 func _input(_event):
 	# 响应generate输入映射（空格键：协调生成trunk和branch装饰）
 	if Input.is_action_just_pressed("generate"):
-		_execute_coordinated_generation(default_trunk_count, default_branch_decoration_count)
+		_execute_coordinated_generation()
 
 ## 执行协调生成（trunk组 + branch装饰组）
-func _execute_coordinated_generation(trunk_count: int, branch_decoration_count: int):
+func _execute_coordinated_generation(trunk_count: int = 0, branch_decoration_count: int = 0):
 	if not fruits_node:
 		return
+	
+	# 增加交互计数器
+	interaction_counter += 1
+	
+	# 根据曲线资源确定实际生成数量
+	var actual_trunk_count = _get_curve_based_count(trunk_generation_curve, default_trunk_count)
+	var actual_branch_count = _get_curve_based_count(branch_generation_curve, default_branch_decoration_count)
 	
 	# 记录生成前的统计数据
 	var initial_trunk_count = _get_current_trunk_count()
 	var initial_branch_count = _get_current_branch_count()
 	
-	# 第一阶段：生成trunk组
-	_execute_trunk_generation_group(trunk_count)
-	
-	# 第二阶段：生成branch装饰组
-	_execute_branch_decoration_group(branch_decoration_count)
+	# 使用步骤式生成：循环执行"1个trunk + 1个branch装饰组"
+	var max_generations = max(actual_trunk_count, actual_branch_count)
+	_execute_step_by_step_generation(actual_trunk_count, actual_branch_count, max_generations)
 	
 	# 统计生成后的数据并显示结果
 	var final_trunk_count = _get_current_trunk_count()
@@ -73,7 +86,7 @@ func _execute_coordinated_generation(trunk_count: int, branch_decoration_count: 
 	var generated_trunks = final_trunk_count - initial_trunk_count
 	var generated_branches = final_branch_count - initial_branch_count
 	
-	print("=== 生成统计 ===")
+	print("=== 生成统计 (交互次数: %d) ===" % interaction_counter)
 	print("本次生成trunk: ", generated_trunks, " 个，现有trunk总数: ", final_trunk_count, " 个")
 	print("本次生成branch: ", generated_branches, " 个，现有branch总数: ", final_branch_count, " 个")
 	instantiation_compeleted.emit()
@@ -90,6 +103,26 @@ func _get_current_branch_count() -> int:
 		return 0
 	return fruits_node.get_branch_count()
 
+## 根据曲线资源获取生成数量
+func _get_curve_based_count(curve: Curve, default_count: int) -> int:
+	if not curve:
+		print("警告：曲线为空，使用默认数量 %d" % default_count)
+		return default_count
+	
+	# 确保交互次数在合理范围内
+	var x_input = float(interaction_counter)
+	x_input = clamp(x_input, 1.0, 20.0)  # 限制在曲线定义的X范围内
+	
+	# 从曲线采样
+	var curve_value = curve.sample(x_input)
+	
+	# 使用四舍五入而不是直接截断
+	var final_count = max(1, int(round(curve_value)))
+	
+
+	
+	return final_count
+
 ## 执行trunk生成组
 func _execute_trunk_generation_group(count: int):
 	if count <= 0:
@@ -101,6 +134,41 @@ func _execute_trunk_generation_group(count: int):
 			if not success:
 				break
 		else:
+			break
+
+## 执行步骤式生成（trunk和branch交替进行）
+func _execute_step_by_step_generation(trunk_count: int, branch_count: int, max_steps: int):
+	var trunk_generated = 0
+	var branch_generated = 0
+	
+	for step in range(max_steps):
+		var step_had_success = false
+		
+		# 步骤1：如果还需要trunk，生成1个trunk
+		if trunk_generated < trunk_count:
+			if fruits_node.has_method("execute_trunk_generation"):
+				var trunk_success = fruits_node.execute_trunk_generation()
+				if trunk_success:
+					trunk_generated += 1
+					step_had_success = true
+		
+		# 步骤2：如果还需要branch，生成1个branch装饰组
+		if branch_generated < branch_count:
+			# 记录生成前的END_BRANCH点状态
+			var initial_end_branch_points = _get_current_end_branch_points()
+			
+			if fruits_node.has_method("execute_branch_generation"):
+				var branch_success = fruits_node.execute_branch_generation()
+				if branch_success:
+					branch_generated += 1
+					step_had_success = true
+					
+					# 查找新生成的END_BRANCH点并生成装饰
+					var new_end_branch_points = _get_new_end_branch_points(initial_end_branch_points)
+					_generate_decorations_at_points(new_end_branch_points)
+		
+		# 如果本步骤没有任何成功，并且已经完成了所需数量，可以提前结束
+		if not step_had_success and trunk_generated >= trunk_count and branch_generated >= branch_count:
 			break
 
 ## 执行branch装饰组生成
@@ -305,7 +373,7 @@ func _instantiate_petal_at_empty_position():
 			instantiation_compeleted.emit()
 			return
 	
-	print("没有找到空位，无法生成petal")
+
 
 ## 在指定位置实例化petal
 func _instantiate_petal_at_position(position_index: int):
@@ -313,7 +381,6 @@ func _instantiate_petal_at_position(position_index: int):
 		return
 	
 	if not _is_position_empty(position_index):
-		print("位置 ", position_index, " 已被占用，无法生成petal")
 		return
 	
 	var petal_pos = petal_positions[position_index]
@@ -364,10 +431,7 @@ func _on_signalbus_fruit_picked_now() -> void:
 	
 	# 检查是否有空位
 	if _has_empty_positions():
-		print("找到空位，开始生成petal")
 		_instantiate_petal_at_empty_position()
-	else:
-		print("没有空位可用")
 
 func _on_curtain_fade_in_completed() -> void:
-	_execute_coordinated_generation(1,1) ## 后面要修改为对应的累进数值
+	_execute_coordinated_generation() ## 现在由曲线资源控制生成数量

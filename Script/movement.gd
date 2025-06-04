@@ -18,8 +18,6 @@ extends CharacterBody2D
 var input_vector: Vector2 = Vector2.ZERO
 var target_position: Vector2 = Vector2.ZERO
 
-func _ready():
-	print("Movement controller initialized with mouse following")
 
 func _physics_process(delta):
 	# 获取输入
@@ -39,10 +37,6 @@ func _handle_input():
 	if mouse_follow_enabled:
 		var mouse_world_pos = _get_mouse_world_position()
 		var distance_to_mouse = global_position.distance_to(mouse_world_pos)
-		
-		# 调试信息
-		if Engine.get_process_frames() % 60 == 0:  # 每秒打印一次
-			print("Player: ", global_position, " Mouse: ", mouse_world_pos, " Distance: ", distance_to_mouse)
 		
 		# 只有当距离大于最小距离时才移动
 		if distance_to_mouse > mouse_min_distance:
