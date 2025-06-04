@@ -5,7 +5,8 @@ extends Node
 
 signal fruit_picked_now
 signal fade_in_now
-signal disable_pickoff_interaction  # 新增：禁用pickoff交互信号
+signal disable_pickoff_interaction
+signal able_pickoff_interaction
 
 var fading:bool = false
 
@@ -14,22 +15,34 @@ var fading:bool = false
 @onready var still_threshold: Timer = %StillThreshold
 @onready var curtain: ColorRect = %Curtain
 
-func _ready():
-	# 连接计时器信号
-	windrises_timer.timeout.connect(_on_windrises_timeout)
+@warning_ignore("unused_parameter")
 
 func _physics_process(delta: float) -> void:
-	_connect_all_pickoff_signals()
+	_connect_pickoff_signals_recursive(get_tree().current_scene)
+	
+## 递归查找并连接pickoff信号
+func _connect_pickoff_signals_recursive(node: Node):
+	# 检查当前节点是否是pickoff节点
+	if node.name == "pickoff" and node.has_signal("fruit_picked"):
+		# 连接fruit_picked信号
+		if not node.fruit_picked.is_connected(_on_fruit_picked):
+			node.fruit_picked.connect(_on_fruit_picked)
+	
+	# 递归处理子节点
+	for child in node.get_children():
+		_connect_pickoff_signals_recursive(child)
+
 
 ## 当鼠标停止移动时的处理
 func _on_mouse_stopped_moving():
-	print("鼠标静止，启动windrises计时器")
+	print("鼠标静止，启动stillthreshold计时器")
 	still_threshold.start()
 
 ## 当鼠标开始移动时的处理
 func _on_mouse_started_moving():
 	if fading == false:
 		_stop_all_timers()
+		print("鼠标移动，且未开始淡入，停止所有计时器")
 	else:
 		return
 
@@ -43,39 +56,19 @@ func _stop_all_timers():
 
 ## windrises计时器超时处理
 func _on_windrises_timeout():
-	fading = true
 	fade_in_now.emit()
-
-
-## 连接所有pickoff节点的信号
-func _connect_all_pickoff_signals():
-	# 查找场景中所有的pickoff节点
-	_connect_pickoff_signals_recursive(get_tree().current_scene)
-
-## 递归查找并连接pickoff信号
-func _connect_pickoff_signals_recursive(node: Node):
-	# 检查当前节点是否是pickoff节点
-	if node.name == "pickoff" and node.has_signal("fruit_picked"):
-		# 连接fruit_picked信号
-		if not node.fruit_picked.is_connected(_on_fruit_picked):
-			node.fruit_picked.connect(_on_fruit_picked)
-	
-	# 递归处理子节点
-	for child in node.get_children():
-		_connect_pickoff_signals_recursive(child)
 
 ## 当接收到fruit_picked信号时的处理方法
 func _on_fruit_picked():
 	fruit_picked_now.emit()
-	print("接收到信号")
 
 
 func _on_still_threshold_timeout() -> void:
-	disable_pickoff_interaction.emit()  # 发出禁用pickoff交互信号
+	disable_pickoff_interaction.emit()  # 发出禁用pickoff交互信号,需要手动连接
+	fading = true
 	windrises_timer.start()
-	print("启动风计时器")
-	print("已发出禁用pickoff交互信号")
+	print("fading倒计时开始，禁用交互，禁用移动检测")
 
-
-func _on_curtain_unlocking_pickoff() -> void:
+func _on_curtain_fade_in_completed_forbus() -> void:
 	fading = false
+	able_pickoff_interaction.emit() # 发出接触禁用，需要手动连接
