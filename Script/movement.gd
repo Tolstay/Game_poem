@@ -4,14 +4,14 @@ extends CharacterBody2D
 ## 支持鼠标跟随移动，无重力影响
 
 # 移动参数
-@export var move_speed: float = 300.0  # 移动速度
-@export var acceleration: float = 1500.0  # 加速度
-@export var friction: float = 1200.0  # 摩擦力/减速度
+@export var move_speed: float = 150.0  # 移动速度
+@export var acceleration: float = 600.0  # 加速度
+@export var friction: float = 1000.0  # 摩擦力/减速度
 
 # 鼠标跟随参数
 @export_group("Mouse Following", "mouse_")
 @export var mouse_follow_enabled: bool = true  # 启用鼠标跟随
-@export var mouse_min_distance: float = 100.0  # 最小跟随距离，小于此距离不移动
+@export var mouse_min_distance: float = 85.0  # 最小跟随距离，小于此距离不移动
 @export var wasd_control_enabled: bool = false  # WASD控制开关（默认禁用）
 
 # 移动输入向量

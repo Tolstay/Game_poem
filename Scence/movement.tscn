@@ -12,11 +12,4 @@ script = ExtResource("1_yymhx")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_oacv1")
-
-[node name="ColorRect" type="ColorRect" parent="."]
-offset_left = -10.0
-offset_top = -10.0
-offset_right = 10.0
-offset_bottom = 10.0
-mouse_filter = 2
-color = Color(1, 1, 1, 0.713726)
+disabled = true

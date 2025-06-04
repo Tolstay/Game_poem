@@ -17,6 +17,18 @@ var camera: Camera2D
 var is_picked: bool = false
 var is_interaction_disabled: bool = false  # 新增：控制交互是否被禁用
 
+# 长按相关变量
+@export var hold_time_required: float = 0.8  # 长按所需时间
+@export var shake_start_threshold: float = 0.3  # 开始抖动的时间阈值
+@export var max_shake_intensity: float = 2.0  # 最大抖动强度
+@export var mouse_move_tolerance: float = 20.0  # 允许的鼠标移动距离
+
+var is_mouse_down: bool = false
+var mouse_down_timer: float = 0.0
+var mouse_down_position: Vector2
+var original_sprite_position: Vector2
+var sprite_node: Sprite2D
+
 # 对象类型标识（用于调试）
 var object_type: String = "Unknown"
 
@@ -40,7 +52,10 @@ func _ready():
 	if not collision_shape:
 		return
 
-	
+	# 查找Sprite2D节点用于抖动动画
+	sprite_node = _find_sprite2d(pickable_object)
+	if sprite_node:
+		original_sprite_position = sprite_node.position
 
 ## 连接signalbus的信号
 func _connect_signalbus_signals():
@@ -130,6 +145,21 @@ func _find_collision_shape(target_node: Node) -> CollisionShape2D:
 	
 	return null
 
+## 在指定节点中查找Sprite2D
+func _find_sprite2d(target_node: Node) -> Sprite2D:
+	# 直接检查是否有Sprite2D子节点
+	for child in target_node.get_children():
+		if child is Sprite2D:
+			return child
+	
+	# 如果没找到，递归查找
+	for child in target_node.get_children():
+		var found_sprite = _find_sprite2d(child)
+		if found_sprite:
+			return found_sprite
+	
+	return null
+
 ## 根据节点名称确定对象类型
 func _determine_object_type(node_name: String) -> String:
 	var name_lower = node_name.to_lower()
@@ -154,13 +184,21 @@ func _input(event):
 		return  # 如果已经被摘取或交互被禁用，不再处理输入
 	
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			# 获取正确的鼠标世界坐标
-			var mouse_world_pos = _get_mouse_world_position()
-			
-			# 检查鼠标点击是否在对象的碰撞区域内
-			if _is_mouse_in_object_collision(mouse_world_pos):
-				_pick_object()
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				# 鼠标按下
+				var mouse_world_pos = _get_mouse_world_position()
+				if _is_mouse_in_object_collision(mouse_world_pos):
+					_start_hold_interaction(mouse_world_pos)
+			else:
+				# 鼠标释放
+				_cancel_hold_interaction()
+	
+	elif event is InputEventMouseMotion and is_mouse_down:
+		# 检查鼠标是否移动过远
+		var current_mouse_pos = _get_mouse_world_position()
+		if mouse_down_position.distance_to(current_mouse_pos) > mouse_move_tolerance:
+			_cancel_hold_interaction()
 
 ## 检查鼠标位置是否在对象的碰撞区域内
 func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
@@ -193,6 +231,62 @@ func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 	
 	else:
 		return false
+
+func _process(delta):
+	if is_mouse_down and not is_picked and not is_interaction_disabled:
+		mouse_down_timer += delta
+		
+		# 开始抖动动画
+		if mouse_down_timer >= shake_start_threshold and sprite_node:
+			_apply_shake_animation()
+		
+		# 检查是否到达长按时间
+		if mouse_down_timer >= hold_time_required:
+			_complete_hold_interaction()
+
+## 开始长按交互
+func _start_hold_interaction(mouse_pos: Vector2):
+	is_mouse_down = true
+	mouse_down_timer = 0.0
+	mouse_down_position = mouse_pos
+
+## 取消长按交互
+func _cancel_hold_interaction():
+	if is_mouse_down:
+		is_mouse_down = false
+		mouse_down_timer = 0.0
+		_reset_sprite_position()
+
+## 完成长按交互
+func _complete_hold_interaction():
+	if is_mouse_down:
+		is_mouse_down = false
+		mouse_down_timer = 0.0
+		_reset_sprite_position()
+		_pick_object()
+
+## 应用抖动动画
+func _apply_shake_animation():
+	if not sprite_node:
+		return
+	
+	# 计算抖动强度（随时间增加）
+	var progress = (mouse_down_timer - shake_start_threshold) / (hold_time_required - shake_start_threshold)
+	progress = clamp(progress, 0.0, 1.0)
+	var shake_intensity = progress * max_shake_intensity
+	
+	# 生成随机偏移
+	var shake_offset = Vector2(
+		randf_range(-shake_intensity, shake_intensity),
+		randf_range(-shake_intensity, shake_intensity)
+	)
+	
+	sprite_node.position = original_sprite_position + shake_offset
+
+## 重置Sprite位置
+func _reset_sprite_position():
+	if sprite_node:
+		sprite_node.position = original_sprite_position
 
 ## 摘取对象 - 应用重力并垂直落下
 func _pick_object():
