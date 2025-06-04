@@ -1,11 +1,15 @@
-[gd_scene load_steps=2 format=3 uid="uid://b7uhkvkjmxp5k"]
+[gd_scene load_steps=3 format=3 uid="uid://b7uhkvkjmxp5k"]
 
 [ext_resource type="Script" uid="uid://dk5s767akhns4" path="res://Script/textdisplay.gd" id="1_dyo1w"]
+[ext_resource type="FontFile" uid="uid://5s6klcknipcm" path="res://fonts/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf" id="2_46hoo"]
 
 [node name="textdisplay" type="Node2D"]
 script = ExtResource("1_dyo1w")
 
 [node name="Label" type="Label" parent="."]
+z_index = 100
 offset_right = 40.0
 offset_bottom = 23.0
-text = "Test"
+theme_override_fonts/font = ExtResource("2_46hoo")
+theme_override_font_sizes/font_size = 10
+text = "yesyesyes"

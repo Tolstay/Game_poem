@@ -4,9 +4,8 @@
 [ext_resource type="PackedScene" uid="uid://bfj7ark2vtjx3" path="res://Scence/Logic/pickoff.tscn" id="2_6ly5q"]
 [ext_resource type="PackedScene" uid="uid://b7uhkvkjmxp5k" path="res://Scence/Logic/textdisplay.tscn" id="3_6ly5q"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_02bu6"]
-radius = 8.0
-height = 32.0
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_6ly5q"]
+radius = 6.0
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_isuug"]
 atlas = ExtResource("1_3ihw8")
@@ -18,7 +17,7 @@ collision_mask = 0
 gravity_scale = 0.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("CapsuleShape2D_02bu6")
+shape = SubResource("CapsuleShape2D_6ly5q")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = SubResource("AtlasTexture_isuug")
