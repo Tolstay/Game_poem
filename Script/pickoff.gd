@@ -323,6 +323,11 @@ func _pick_object():
 	# 发出基础信号
 	if object_type == "Fruit":
 		fruit_picked.emit()
+	elif object_type == "Petal":
+		# 通知SignalBus花瓣被摘除
+		var signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
+		if signalbus and signalbus.has_method("on_petal_picked"):
+			signalbus.on_petal_picked()
 	
 	# 可以在这里添加特定对象类型的额外行为
 	_handle_object_specific_pickup_behavior()

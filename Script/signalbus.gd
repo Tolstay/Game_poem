@@ -10,6 +10,9 @@ signal able_pickoff_interaction
 
 var fading:bool = false
 
+# 花瓣摘除计数系统
+var petal_pick_count: int = 0
+
 # 使用现有的计时器节点
 @onready var windrises_timer: Timer = %Windrises
 @onready var still_threshold: Timer = %StillThreshold
@@ -76,3 +79,28 @@ func _on_curtain_fade_in_completed_forbus() -> void:
 	await get_tree().create_timer(1.5).timeout
 	fading = false
 	able_pickoff_interaction.emit() # 发出接触禁用，需要手动连接
+
+## 花瓣被摘除时调用（增加计数）
+func on_petal_picked():
+	petal_pick_count += 1
+	print("花瓣摘除计数: ", petal_pick_count)
+
+## 获取当前应显示的文本
+func get_current_petal_text() -> String:
+	# 根据摘除计数生成文本
+	# count=0: yes, count=1: no, count=2: yesyes, count=3: nono, ...
+	var base_text: String
+	var repeat_count: int
+	
+	if petal_pick_count % 2 == 0:
+		base_text = "yes "
+	else:
+		base_text = "no "
+	
+	repeat_count = (petal_pick_count / 2) + 1
+	
+	var result = ""
+	for i in range(repeat_count):
+		result += base_text
+	
+	return result

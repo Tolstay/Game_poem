@@ -43,10 +43,14 @@ func _ready():
 	# 初始隐藏文本
 	label.visible = false
 	
-	# 设置初始文本内容
-	if label and label.text != "":
-		full_text = label.text
-		label.text = ""  # 清空显示，准备打字机效果
+	# 设置文本样式：固定宽度，允许自动换行
+	if label:
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.custom_minimum_size.x = 100  # 固定宽度80像素
+		label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	
+	# 从SignalBus获取初始文本内容
+	_update_text_from_signalbus()
 	
 	# 创建打字机计时器
 	typing_timer = Timer.new()
@@ -160,6 +164,8 @@ func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 ## 显示文本（开始打字机效果）
 func _show_text():
 	if label and not is_typing and not is_backspacing:
+		# 每次显示前都更新文本内容
+		_update_text_from_signalbus()
 		_update_text_position()
 		label.visible = true
 		_start_typing_effect()
@@ -268,7 +274,7 @@ func _update_text_position():
 	
 	# 直接设置相对于petal的偏移位置
 	# Label会跟随textdisplay节点，而textdisplay在Logic下，Logic在petal下
-	label.position = Vector2(-20, -30)  # 在对象上方偏左显示
+	label.position = Vector2(10, -15)  # 在对象上方偏左显示
 
 ## 设置文本内容（外部调用）
 func set_text(text: String):
@@ -279,6 +285,14 @@ func set_text(text: String):
 			_start_typing_effect()
 		else:
 			label.text = ""
+
+## 从SignalBus更新文本内容
+func _update_text_from_signalbus():
+	var signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
+	if signalbus and signalbus.has_method("get_current_petal_text"):
+		full_text = signalbus.get_current_petal_text()
+	else:
+		full_text = "yes"  # 默认文本
 
 ## 检查父对象是否被摘取（由pickoff调用）
 func notify_parent_picked():
