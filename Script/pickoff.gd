@@ -13,6 +13,9 @@ var collision_shape: CollisionShape2D
 # Camera2D引用（用于坐标转换）
 var camera: Camera2D
 
+# 文本显示组件引用
+var text_display: Node2D
+
 # 状态控制
 var is_picked: bool = false
 var is_interaction_disabled: bool = false  # 新增：控制交互是否被禁用
@@ -20,7 +23,7 @@ var is_interaction_disabled: bool = false  # 新增：控制交互是否被禁�
 # 长按相关变量
 @export var hold_time_required: float = 0.8  # 长按所需时间
 @export var shake_start_threshold: float = 0.3  # 开始抖动的时间阈值
-@export var max_shake_intensity: float = 2.0  # 最大抖动强度
+@export var max_shake_intensity: float = 1.0  # 最大抖动强度
 @export var mouse_move_tolerance: float = 20.0  # 允许的鼠标移动距离
 
 var is_mouse_down: bool = false
@@ -33,6 +36,9 @@ var sprite_node: Sprite2D
 var fall_tween: Tween
 var original_sprite_rotation: float
 var original_sprite_scale: Vector2
+
+# 鼠标悬停状态
+var is_mouse_hovering: bool = false
 
 # 对象类型标识（用于调试）
 var object_type: String = "Unknown"
@@ -63,6 +69,11 @@ func _ready():
 		original_sprite_position = sprite_node.position
 		original_sprite_rotation = sprite_node.rotation
 		original_sprite_scale = sprite_node.scale
+	
+	# 查找textdisplay组件
+	text_display = _find_text_display()
+	if text_display:
+		_hide_text_display()  # 初始时隐藏文本
 
 ## 连接signalbus的信号
 func _connect_signalbus_signals():
@@ -167,6 +178,16 @@ func _find_sprite2d(target_node: Node) -> Sprite2D:
 	
 	return null
 
+## 查找textdisplay组件
+func _find_text_display() -> Node2D:
+	# 从Logic节点查找textdisplay
+	var logic_node = get_parent()  # pickoff在Logic下
+	if logic_node:
+		for child in logic_node.get_children():
+			if child.name == "textdisplay":
+				return child
+	return null
+
 ## 根据节点名称确定对象类型
 func _determine_object_type(node_name: String) -> String:
 	var name_lower = node_name.to_lower()
@@ -240,6 +261,10 @@ func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 		return false
 
 func _process(delta):
+	# 检测鼠标悬停
+	if not is_picked and not is_interaction_disabled:
+		_check_mouse_hover()
+	
 	if is_mouse_down and not is_picked and not is_interaction_disabled:
 		mouse_down_timer += delta
 		
@@ -395,6 +420,30 @@ func _destroy_pickable_object():
 	if pickable_object and is_instance_valid(pickable_object):
 		print("销毁掉落对象: ", object_type)
 		pickable_object.queue_free()
+
+## 检测鼠标悬停
+func _check_mouse_hover():
+	var mouse_world_pos = _get_mouse_world_position()
+	var is_hovering = _is_mouse_in_object_collision(mouse_world_pos)
+	
+	# 检查悬停状态是否改变
+	if is_hovering != is_mouse_hovering:
+		is_mouse_hovering = is_hovering
+		
+		if is_mouse_hovering:
+			_show_text_display()
+		else:
+			_hide_text_display()
+
+## 显示文本
+func _show_text_display():
+	if text_display:
+		text_display.visible = true
+
+## 隐藏文本
+func _hide_text_display():
+	if text_display:
+		text_display.visible = false
 
 ## 从位置group中移除petal
 func _remove_petal_from_position_group():

@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3 uid="uid://did5yhspki1ff"]
+[gd_scene load_steps=6 format=3 uid="uid://did5yhspki1ff"]
 
 [ext_resource type="Texture2D" uid="uid://c5f2q82j6vsvm" path="res://Asset/flower3.png" id="1_3ihw8"]
 [ext_resource type="PackedScene" uid="uid://bfj7ark2vtjx3" path="res://Scence/Logic/pickoff.tscn" id="2_6ly5q"]
+[ext_resource type="PackedScene" uid="uid://b7uhkvkjmxp5k" path="res://Scence/Logic/textdisplay.tscn" id="3_6ly5q"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_02bu6"]
 radius = 8.0
@@ -25,4 +26,7 @@ texture = SubResource("AtlasTexture_isuug")
 [node name="Logic" type="Node2D" parent="."]
 
 [node name="pickoff" parent="Logic" instance=ExtResource("2_6ly5q")]
+unique_name_in_owner = true
+
+[node name="textdisplay" parent="Logic" instance=ExtResource("3_6ly5q")]
 unique_name_in_owner = true
