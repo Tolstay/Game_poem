@@ -35,6 +35,9 @@ func _connect_pickoff_signals_recursive(node: Node):
 
 ## 当鼠标停止移动时的处理
 func _on_mouse_stopped_moving():
+	if fading == true: #还在fading阶段
+		print("还在fading")
+		return
 	print("鼠标静止，启动stillthreshold计时器")
 	still_threshold.start()
 
@@ -67,8 +70,9 @@ func _on_still_threshold_timeout() -> void:
 	disable_pickoff_interaction.emit()  # 发出禁用pickoff交互信号,需要手动连接
 	fading = true
 	windrises_timer.start()
-	print("fading倒计时开始，禁用交互，禁用移动检测")
+	print("发出禁用信号")
 
 func _on_curtain_fade_in_completed_forbus() -> void:
+	await get_tree().create_timer(1.5).timeout
 	fading = false
 	able_pickoff_interaction.emit() # 发出接触禁用，需要手动连接

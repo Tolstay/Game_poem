@@ -9,8 +9,8 @@
 [ext_resource type="Script" uid="uid://bvbw3ejkm2bck" path="res://addons/postfx/scripts/FXBase.gd" id="6_phfla"]
 [ext_resource type="Script" uid="uid://cqqc7s7kp8uem" path="res://addons/postfx/effects/VignetteFX.gd" id="7_k2005"]
 [ext_resource type="Texture2D" uid="uid://ch3gpolfg1ss5" path="res://Asset/dither_flowerback.png" id="8_xpfmo"]
-[ext_resource type="Script" uid="uid://8he5irjtsrxn" path="res://Scence/curtain.gd" id="10_iow1c"]
-[ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Scence/signalbus.gd" id="10_xpfmo"]
+[ext_resource type="Script" uid="uid://8he5irjtsrxn" path="res://Script/curtain.gd" id="10_iow1c"]
+[ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Script/signalbus.gd" id="10_xpfmo"]
 [ext_resource type="AudioStream" uid="uid://c0qyan1x2ndtk" path="res://Sound/windrises.wav" id="12_01llu"]
 
 [sub_resource type="Resource" id="Resource_xpfmo"]
@@ -95,7 +95,7 @@ script = ExtResource("10_xpfmo")
 
 [node name="StillThreshold" type="Timer" parent="Timers"]
 unique_name_in_owner = true
-wait_time = 3.0
+wait_time = 2.5
 one_shot = true
 
 [node name="Windrises" type="Timer" parent="Timers"]

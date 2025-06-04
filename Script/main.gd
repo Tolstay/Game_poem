@@ -4,7 +4,6 @@ extends Node2D
 ## 负责场景初始化、petal圆形实例化和生成交互控制
 
 @onready var signalbus: Node = %Signalbus
-@onready var windrises: AudioStreamPlayer = %windrises
 
 # 鼠标静止检测信号
 signal mouse_stopped_moving
@@ -209,9 +208,6 @@ func _update_mouse_detection(delta: float):
 		if mouse_still_timer >= mouse_still_time and not is_mouse_still:
 			is_mouse_still = true
 			mouse_stopped_moving.emit()
-			windrises.volume_db = 0.0
-			await get_tree().create_timer(2.0).timeout
-			windrises.play()
 			
 
 ## 查找SubViewport结构
@@ -342,8 +338,6 @@ func _instantiate_petal_at_position(position_index: int):
 	# 将petal添加到对应位置的group中
 	var group_name = PETAL_GROUP_PREFIX + str(position_index)
 	petal.add_to_group(group_name)
-	
-	print("在位置 ", position_index, " 生成了petal，group: ", group_name)
 
 ## 智能选择petal的父节点
 func _add_petal_to_correct_parent(petal: Node):
@@ -360,14 +354,11 @@ func _add_petal_to_correct_parent(petal: Node):
 ## 清理无效的petal节点引用
 func _clean_invalid_petal_references():
 	# 使用group系统，这个方法现在主要用于调试
-	print("=== Petal状态检查 ===")
 	for i in range(petal_count):
 		var group_name = PETAL_GROUP_PREFIX + str(i)
 		var petals_at_position = get_tree().get_nodes_in_group(group_name)
-		print("位置 ", i, ": ", petals_at_position.size(), " 个petal")
 
 func _on_signalbus_fruit_picked_now() -> void:
-	print("main脚本收到信号")
 	# 调试：显示当前状态
 	_clean_invalid_petal_references()
 	

@@ -21,7 +21,13 @@ var is_interaction_disabled: bool = false  # 新增：控制交互是否被禁�
 var object_type: String = "Unknown"
 
 func _ready():
+	# 查找Camera2D（用于坐标转换）
+	camera = _find_camera2d()
+	
+	# 连接signalbus的disable_pickoff_interaction信号
+	call_deferred("_connect_signalbus_signals")
 	# 自动查找父层级中的RigidBody2D节点
+	
 	pickable_object = _find_parent_rigidbody()
 	if not pickable_object:
 		return
@@ -33,31 +39,38 @@ func _ready():
 	collision_shape = _find_collision_shape(pickable_object)
 	if not collision_shape:
 		return
+
 	
-	# 查找Camera2D（用于坐标转换）
-	camera = _find_camera2d()
-	
-	# 连接signalbus的disable_pickoff_interaction信号
-	_connect_signalbus_signals()
 
 ## 连接signalbus的信号
 func _connect_signalbus_signals():
 	# 查找signalbus节点，优先使用unique_name方式
-	var signalbus = get_node_or_null("%Signalbus")
+
+	var signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
 	
 	if signalbus and signalbus.has_signal("disable_pickoff_interaction"):
 		if not signalbus.disable_pickoff_interaction.is_connected(_on_disable_pickoff_interaction):
 			signalbus.disable_pickoff_interaction.connect(_on_disable_pickoff_interaction)
-			print("Pickoff已连接到signalbus的disable_pickoff_interaction信号")
+			print("已连接到disable_pickoff_interaction信号")
 	else:
 		print("警告：未找到signalbus或disable_pickoff_interaction信号")
+	
+	
+	if signalbus and signalbus.has_signal("able_pickoff_interaction"):
+		if not signalbus.able_pickoff_interaction.is_connected(_on_able_pickoff_interaction):
+			signalbus.able_pickoff_interaction.connect(_on_able_pickoff_interaction)
+			print("已连接到able_pickoff_interaction信号")
+	else:
+		print("警告：未找到signalbus或able_pickoff_interaction信号")
 
 ## 响应禁用交互信号
 func _on_disable_pickoff_interaction():
 	is_interaction_disabled = true
 	print("Pickoff交互已被禁用 - ", object_type)
-	await get_tree().create_timer(3.0).timeout
+	
+func _on_able_pickoff_interaction():
 	is_interaction_disabled = false
+	print("解除交互禁用")
 
 ## 检查交互是否被禁用（供外部调用）
 func is_interaction_enabled() -> bool:
