@@ -1,11 +1,15 @@
-[gd_scene load_steps=4 format=3 uid="uid://l8mdqy2dsvvv"]
+[gd_scene load_steps=5 format=3 uid="uid://l8mdqy2dsvvv"]
 
-[ext_resource type="Texture2D" uid="uid://bnu1mkj76x5ao" path="res://Asset/fruit2.png" id="1_ceewg"]
+[ext_resource type="Texture2D" uid="uid://dx0olos7iwh2v" path="res://Asset/fruit6.png" id="1_ceewg"]
 [ext_resource type="PackedScene" uid="uid://bfj7ark2vtjx3" path="res://Scence/Logic/pickoff.tscn" id="2_ceewg"]
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_ejhox"]
+atlas = ExtResource("1_ceewg")
+region = Rect2(37, 5, 24, 29)
+
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ceewg"]
-radius = 12.0
-height = 34.0
+radius = 11.0
+height = 28.0
 
 [node name="Fruit" type="RigidBody2D"]
 collision_layer = 0
@@ -13,8 +17,8 @@ collision_mask = 0
 gravity_scale = 0.0
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(1, 0)
-texture = ExtResource("1_ceewg")
+texture_filter = 1
+texture = SubResource("AtlasTexture_ejhox")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CapsuleShape2D_ceewg")

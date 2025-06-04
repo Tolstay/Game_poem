@@ -15,7 +15,7 @@ const PETAL_SCENE = preload("res://Scence/petal.tscn")
 
 # Petal实例化参数
 @export_group("Petal Generation", "petal_")
-@export var petal_count: int = 12  # petal数量
+@export var petal_count: int = 5  # petal数量
 @export var petal_radius: float = 30.0  # 实例化圆形半径
 @export var petal_auto_generate: bool = true  # 是否在场景启动时自动生成
 

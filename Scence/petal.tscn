@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3 uid="uid://did5yhspki1ff"]
 
-[ext_resource type="Texture2D" uid="uid://c5f2q82j6vsvm" path="res://Asset/flower3.png" id="1_3ihw8"]
+[ext_resource type="Texture2D" uid="uid://3jdvj4j1gqjo" path="res://Asset/petal4.png" id="1_6ly5q"]
 [ext_resource type="PackedScene" uid="uid://bfj7ark2vtjx3" path="res://Scence/Logic/pickoff.tscn" id="2_6ly5q"]
 [ext_resource type="PackedScene" uid="uid://b7uhkvkjmxp5k" path="res://Scence/Logic/textdisplay.tscn" id="3_6ly5q"]
 
@@ -8,8 +8,8 @@
 radius = 6.0
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_isuug"]
-atlas = ExtResource("1_3ihw8")
-region = Rect2(173, 55, 17, 33)
+atlas = ExtResource("1_6ly5q")
+region = Rect2(3, 1, 44, 43)
 
 [node name="Petal" type="RigidBody2D"]
 collision_layer = 0

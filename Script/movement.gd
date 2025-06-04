@@ -11,7 +11,7 @@ extends CharacterBody2D
 # 鼠标跟随参数
 @export_group("Mouse Following", "mouse_")
 @export var mouse_follow_enabled: bool = true  # 启用鼠标跟随
-@export var mouse_min_distance: float = 85.0  # 最小跟随距离，小于此距离不移动
+@export var mouse_min_distance: float = 88.0  # 最小跟随距离，小于此距离不移动
 @export var wasd_control_enabled: bool = false  # WASD控制开关（默认禁用）
 
 # 移动输入向量
