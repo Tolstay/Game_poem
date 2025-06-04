@@ -8,7 +8,7 @@
 [ext_resource type="Script" uid="uid://d15nobs3uuxeb" path="res://addons/postfx/nodes/PostFX.gd" id="5_bkjcf"]
 [ext_resource type="Script" uid="uid://bvbw3ejkm2bck" path="res://addons/postfx/scripts/FXBase.gd" id="6_phfla"]
 [ext_resource type="Script" uid="uid://cqqc7s7kp8uem" path="res://addons/postfx/effects/VignetteFX.gd" id="7_k2005"]
-[ext_resource type="Texture2D" uid="uid://ch3gpolfg1ss5" path="res://Asset/dither_flowerback.png" id="8_xpfmo"]
+[ext_resource type="Texture2D" uid="uid://b664u2154hil1" path="res://Asset/heart1.png" id="8_01llu"]
 [ext_resource type="Script" uid="uid://8he5irjtsrxn" path="res://Script/curtain.gd" id="10_iow1c"]
 [ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Script/signalbus.gd" id="10_xpfmo"]
 [ext_resource type="AudioStream" uid="uid://c0qyan1x2ndtk" path="res://Sound/windrises.wav" id="12_01llu"]
@@ -31,8 +31,8 @@ enabled = true
 metadata/_custom_type_script = "uid://cqqc7s7kp8uem"
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_k2005"]
-atlas = ExtResource("8_xpfmo")
-region = Rect2(73, 34, 110, 110)
+atlas = ExtResource("8_01llu")
+region = Rect2(71, 23, 131, 131)
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_k2005")
