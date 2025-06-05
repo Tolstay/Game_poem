@@ -3,35 +3,48 @@ extends Node2D
 ## 树枝生成器
 ## 简单的生成逻辑，由Fruits控制器调用
 
-# 生成参数
-@export var branch_length: float = 100.0
-@export var min_branch_length: float = 70.0  # 分支长度下限
-@export var max_branch_length: float = 120.0  # 分支长度上限
-@export var length_randomness: float = 0.7  # 长度随机化频率 (0.0=固定长度, 1.0=完全随机)
-@export var line_width: float = 3.0
+@export_group("Trunk System", "trunk_")
+@export var trunk_length_min: float = 70.0  # Trunk最小长度
+@export var trunk_length_max: float = 120.0  # Trunk最大长度
+@export var trunk_length_randomness: float = 0.7  # Trunk长度随机化频率 (0.0=固定长度, 1.0=完全随机)
+@export var trunk_angle_min_degrees: float = 30.0  # Trunk最小分支角度（度）
+@export var trunk_angle_max_degrees: float = 85.0  # Trunk最大分支角度（度）
+@export var trunk_angle_min_separation_degrees: float = 50.0  # Trunk同一生成点的分支之间最小角度（度）
+@export var trunk_point_radius: float = 60.0  # Trunk点的碰撞半径
+@export var trunk_line_width: float = 4.0  # Trunk线段宽度
+@export var trunk_line_color: Color = Color.BLACK  # Trunk线段颜色
 
-@export_group("Line Colors", "line_")
-@export var line_trunk_color: Color = Color(0.6, 0.4, 0.2, 1.0)  # trunk线段颜色
-@export var line_branch_color: Color = Color(0.2, 0.7, 0.3, 1.0)  # branch线段颜色
+@export_group("Trunk Bend System", "trunk_bend_")
+@export var trunk_bend_min_points: int = 5  # Trunk最小折线点数量
+@export var trunk_bend_max_points: int = 10  # Trunk最大折线点数量
+@export var trunk_bend_probability: float = 1.0  # Trunk生成折线点的概率
+@export var trunk_bend_min_offset: float = 3.0  # Trunk最小垂直偏移距离
+@export var trunk_bend_max_offset: float = 12.0  # Trunk最大垂直偏移距离
+@export var trunk_bend_min_segment_length: float = 50.0  # Trunk生成折线点的最小线段长度
+@export var trunk_bend_enable_coordinated: bool = true  # 是否启用Trunk协调弯曲（避免曲折）
+@export var trunk_bend_arc_intensity: float = 1.0  # Trunk弧形强度（0.0=直线分布，1.0=完整弧形）
+@export var trunk_bend_direction_consistency: float = 1.0  # Trunk方向一致性（0.0=完全随机，1.0=完全一致）
+@export var trunk_bend_offset_smoothness: float = 0.8  # Trunk偏移量平滑度（0.0=完全随机，1.0=完全平滑）
 
-@export_group("Generation Angles", "angle_")
-@export var angle_min_degrees: float = 30.0  # 最小分支角度（度）
-@export var angle_max_degrees: float = 85.0  # 最大分支角度（度）
-@export var angle_min_branch_separation_degrees: float = 50.0  # 同一生成点的分支之间最小角度（度）
+@export_group("Branch Bend System", "branch_bend_")
+@export var branch_bend_enabled: bool = true  # 是否启用Branch弯曲
+@export var branch_bend_min_points: int = 3  # Branch最小折线点数量
+@export var branch_bend_max_points: int = 4  # Branch最大折线点数量
+@export var branch_bend_probability: float = 1  # Branch生成折线点的概率
+@export var branch_bend_min_offset: float = 2.0  # Branch最小垂直偏移距离
+@export var branch_bend_max_offset: float = 5.0  # Branch最大垂直偏移距离
+@export var branch_bend_min_segment_length: float = 10.0  # Branch生成折线点的最小线段长度
+@export var branch_bend_enable_coordinated: bool = true  # 是否启用Branch协调弯曲
+@export var branch_bend_arc_intensity: float = 0.7  # Branch弧形强度
+@export var branch_bend_direction_consistency: float = 1  # Branch方向一致性
+@export var branch_bend_offset_smoothness: float = 0.7  # Branch偏移量平滑度
 
-@export var trunk_point_radius: float = 60.0  # trunk点的碰撞半径
-
-@export_group("Bend System", "bend_")
-@export var bend_min_points: int = 5  # 最小折线点数量
-@export var bend_max_points: int = 10     # 最大折线点数量
-@export var bend_probability: float = 1  # 生成折线点的概率
-@export var bend_min_offset: float = 3.0  # 最小垂直偏移距离
-@export var bend_max_offset: float = 12.0  # 最大垂直偏移距离
-@export var bend_min_segment_length: float = 50.0  # 生成折线点的最小线段长度
-@export var bend_enable_coordinated: bool = true  # 是否启用协调弯曲（避免曲折）
-@export var bend_arc_intensity: float = 1  # 弧形强度（0.0=直线分布，1.0=完整弧形）
-@export var bend_direction_consistency: float = 1.0  # 方向一致性（0.0=完全随机，1.0=完全一致）
-@export var bend_offset_smoothness: float = 0.8  # 偏移量平滑度（0.0=完全随机，1.0=完全平滑）
+@export_group("Branch System", "branch_")
+@export var branch_length_min: float = 40.0  # Branch最小长度
+@export var branch_length_max: float = 80.0  # Branch最大长度
+@export var branch_length_randomness: float = 0.8  # Branch长度随机化频率
+@export var branch_line_width: float = 2.0  # Branch线段宽度
+@export var branch_line_color: Color = Color.BLACK  # Branch线段颜色
 
 # 生成点场景
 const TRUNK_POINT_SCENE = preload("res://Scence/trunk_point.tscn")
@@ -121,9 +134,9 @@ func _generate_single_branch(start_pos: Vector2, fruits_controller, original_dir
 	while attempt < max_attempts:
 		# 生成随机方向
 		var new_direction = _generate_valid_direction(original_direction, existing_branches)
-		# 使用随机化的分支长度
-		var current_branch_length = _get_random_branch_length()
-		var end_pos = start_pos + new_direction * current_branch_length
+		# 使用随机化的trunk长度
+		var current_trunk_length = _get_random_trunk_length()
+		var end_pos = start_pos + new_direction * current_trunk_length
 		
 		# 检查是否与现有线段交叉
 		if not _check_line_intersection(start_pos, end_pos):
@@ -158,8 +171,8 @@ func _generate_valid_direction(original_direction: Vector2, existing_branches: A
 	var original_angle = original_direction.angle()
 	
 	# 生成符合角度限制的新方向
-	var min_angle_rad = deg_to_rad(angle_min_degrees)
-	var max_angle_rad = deg_to_rad(angle_max_degrees)
+	var min_angle_rad = deg_to_rad(trunk_angle_min_degrees)
+	var max_angle_rad = deg_to_rad(trunk_angle_max_degrees)
 	
 	var max_direction_attempts = 20
 	for attempt in range(max_direction_attempts):
@@ -194,7 +207,7 @@ func _generate_direction_avoiding_existing(existing_branches: Array) -> Vector2:
 
 ## 检查新方向与已有分支的角度分离是否足够
 func _check_branch_separation(new_direction: Vector2, existing_branches: Array) -> bool:
-	var min_separation_rad = deg_to_rad(angle_min_branch_separation_degrees)
+	var min_separation_rad = deg_to_rad(trunk_angle_min_separation_degrees)
 	
 	for existing_branch in existing_branches:
 		var angle_diff = abs(new_direction.angle() - existing_branch.angle())
@@ -231,24 +244,13 @@ func _lines_intersect(p1: Vector2, p2: Vector2, p3: Vector2, p4: Vector2) -> boo
 func _direction(pi: Vector2, pj: Vector2, pk: Vector2) -> float:
 	return (pk.x - pi.x) * (pj.y - pi.y) - (pj.x - pi.x) * (pk.y - pi.y)
 
-## 创建分支线条
+## 创建分支线条（支持弯曲）
 func _create_branch_line(start_pos: Vector2, end_pos: Vector2):
-	var line = Line2D.new()
-	line.add_point(to_local(start_pos))
-	line.add_point(to_local(end_pos))
-	line.width = line_width
-	line.default_color = line_branch_color
+	# 计算包含折线点的完整路径
+	var all_points = _calculate_branch_bend_points(start_pos, end_pos)
 	
-	# 获取Fruitlayer节点并添加Line2D
-	var fruits_controller = get_parent()
-	if fruits_controller and fruits_controller.has_method("get_fruit_layer"):
-		var fruit_layer = fruits_controller.get_fruit_layer()
-		if fruit_layer:
-			fruit_layer.add_child(line)
-		else:
-			add_child(line)
-	else:
-		add_child(line)
+	# 创建弯曲的branch线段
+	_create_branch_line_with_bend(all_points)
 
 ## 在末端创建新的生成点
 func _create_end_point(end_pos: Vector2, fruits_controller, direction: Vector2) -> int:
@@ -277,14 +279,23 @@ func _check_point_collision(new_pos: Vector2, fruits_controller) -> bool:
 			return true
 	return false
 
-## 计算随机化的分支长度
-func _get_random_branch_length() -> float:
-	if randf() < length_randomness:
+## 计算随机化的trunk长度
+func _get_random_trunk_length() -> float:
+	if randf() < trunk_length_randomness:
 		# 使用随机长度
-		return randf_range(min_branch_length, max_branch_length)
+		return randf_range(trunk_length_min, trunk_length_max)
 	else:
-		# 使用固定长度
-		return branch_length
+		# 使用最大长度作为固定长度
+		return trunk_length_max
+
+## 计算随机化的branch长度
+func _get_random_branch_length() -> float:
+	if randf() < branch_length_randomness:
+		# 使用随机长度
+		return randf_range(branch_length_min, branch_length_max)
+	else:
+		# 使用最大长度作为固定长度
+		return branch_length_max
 
 ## 记录branch线段到existing_lines（供fruits.gd调用）
 func _record_branch_line(start_pos: Vector2, end_pos: Vector2):
@@ -342,7 +353,7 @@ func _generate_branch_from_point(branch_point_index: int, fruits_controller):
 	for attempt in range(max_attempts):
 		# 生成随机的branch方向和长度
 		var branch_direction = _generate_branch_direction(trunk_direction, fruits_controller)
-		var current_branch_length = randf_range(fruits_controller.branch_min_length, fruits_controller.branch_max_length)
+		var current_branch_length = _get_random_branch_length()
 		var branch_end_pos = branch_start_pos + branch_direction * current_branch_length
 		
 		# 检查碰撞
@@ -627,21 +638,21 @@ func _calculate_bend_points(start_pos: Vector2, end_pos: Vector2) -> Array[Vecto
 	var perpendicular = Vector2(-segment_direction.y, segment_direction.x)  # 垂直方向
 	
 	# 检查是否应该添加折线点
-	if segment_length < bend_min_segment_length:
+	if segment_length < trunk_bend_min_segment_length:
 		points.append(end_pos)  # 太短的线段不添加折线点
 		return points
 	
 	# 决定折线点数量
 	var bend_count = 0
-	if randf() < bend_probability:
+	if randf() < trunk_bend_probability:
 		# 确保最小值不超过最大值
-		var min_count = max(0, bend_min_points)
-		var max_count = max(min_count, bend_max_points)
-		bend_count = randi_range(min_count, max_count)  # bend_min_points到bend_max_points
+		var min_count = max(0, trunk_bend_min_points)
+		var max_count = max(min_count, trunk_bend_max_points)
+		bend_count = randi_range(min_count, max_count)
 	
 	# 生成中间折线点
 	if bend_count > 0:
-		if bend_enable_coordinated:
+		if trunk_bend_enable_coordinated:
 			# 协调弯曲模式：所有点向协调的方向弯曲
 			_generate_coordinated_bend_points(points, start_pos, end_pos, perpendicular, bend_count)
 		else:
@@ -657,7 +668,7 @@ func _generate_coordinated_bend_points(points: Array[Vector2], start_pos: Vector
 	var main_bend_direction = 1.0 if randf() > 0.5 else -1.0
 	
 	# 为整条trunk选择一个基础偏移量（用于平滑模式）
-	var base_trunk_offset = randf_range(bend_min_offset, bend_max_offset)
+	var base_trunk_offset = randf_range(trunk_bend_min_offset, trunk_bend_max_offset)
 	
 	# 生成中间折线点
 	for i in range(bend_count):
@@ -667,27 +678,27 @@ func _generate_coordinated_bend_points(points: Array[Vector2], start_pos: Vector
 		
 		# 计算弧形强度因子（创造自然的弧形效果）
 		var arc_factor = 1.0
-		if bend_arc_intensity > 0.0:
+		if trunk_bend_arc_intensity > 0.0:
 			# 使用正弦函数创造弧形分布，中间最强，两端较弱
 			var progress = float(i) / float(bend_count - 1) if bend_count > 1 else 0.5
-			arc_factor = sin(progress * PI) * bend_arc_intensity + (1.0 - bend_arc_intensity)
+			arc_factor = sin(progress * PI) * trunk_bend_arc_intensity + (1.0 - trunk_bend_arc_intensity)
 		
 		# 计算偏移量（应用平滑度控制）
 		var base_offset: float
-		if bend_offset_smoothness >= 1.0:
+		if trunk_bend_offset_smoothness >= 1.0:
 			# 完全平滑：所有点使用相同的基础偏移
 			base_offset = base_trunk_offset
 		else:
 			# 混合模式：在平滑偏移和随机偏移之间插值
 			var smooth_offset = base_trunk_offset
-			var random_offset = randf_range(bend_min_offset, bend_max_offset)
-			base_offset = lerp(random_offset, smooth_offset, bend_offset_smoothness)
+			var random_offset = randf_range(trunk_bend_min_offset, trunk_bend_max_offset)
+			base_offset = lerp(random_offset, smooth_offset, trunk_bend_offset_smoothness)
 		
 		# 应用方向一致性
 		var final_direction = main_bend_direction
-		if bend_direction_consistency < 1.0:
+		if trunk_bend_direction_consistency < 1.0:
 			# 允许一些随机性，但仍然倾向于主方向
-			var random_factor = (randf() - 0.5) * 2.0 * (1.0 - bend_direction_consistency)
+			var random_factor = (randf() - 0.5) * 2.0 * (1.0 - trunk_bend_direction_consistency)
 			final_direction = main_bend_direction + random_factor
 			# 确保方向在合理范围内
 			final_direction = clamp(final_direction, -1.0, 1.0)
@@ -707,7 +718,7 @@ func _generate_random_bend_points(points: Array[Vector2], start_pos: Vector2, en
 		
 		# 添加垂直偏移（原始随机方法）
 		var offset_direction = 1.0 if randf() > 0.5 else -1.0  # 随机选择偏移方向
-		var offset_amount = randf_range(bend_min_offset, bend_max_offset) * offset_direction
+		var offset_amount = randf_range(trunk_bend_min_offset, trunk_bend_max_offset) * offset_direction
 		var offset_point = base_point + perpendicular * offset_amount
 		
 		points.append(offset_point)
@@ -724,8 +735,149 @@ func _create_trunk_line_with_bend(points: Array[Vector2]):
 	for point in points:
 		line.add_point(to_local(point))
 	
-	line.width = line_width
-	line.default_color = line_trunk_color
+	line.width = trunk_line_width
+	line.default_color = trunk_line_color
+	
+	# 应用trunk1贴图
+	var trunk_texture = preload("res://Asset/trunk/trunk1.png")
+	line.texture = trunk_texture
+	line.texture_mode = Line2D.LINE_TEXTURE_TILE
+	
+	# 获取Fruitlayer节点并添加Line2D
+	var fruits_controller = get_parent()
+	if fruits_controller and fruits_controller.has_method("get_fruit_layer"):
+		var fruit_layer = fruits_controller.get_fruit_layer()
+		if fruit_layer:
+			fruit_layer.add_child(line)
+		else:
+			add_child(line)
+	else:
+		add_child(line)
+	
+	# 记录所有线段段落
+	for i in range(points.size() - 1):
+		existing_lines.append({
+			"start": points[i],
+			"end": points[i + 1]
+		})
+
+## ==================== Branch弯曲系统 ====================
+
+## 计算branch折线点（专用于branch的弯曲）
+func _calculate_branch_bend_points(start_pos: Vector2, end_pos: Vector2) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	points.append(start_pos)  # 起点
+	
+	# 如果branch弯曲未启用，直接返回直线
+	if not branch_bend_enabled:
+		points.append(end_pos)
+		return points
+	
+	# 计算线段长度和方向
+	var segment_length = start_pos.distance_to(end_pos)
+	var segment_direction = (end_pos - start_pos).normalized()
+	var perpendicular = Vector2(-segment_direction.y, segment_direction.x)  # 垂直方向
+	
+	# 检查是否应该添加折线点
+	if segment_length < branch_bend_min_segment_length:
+		points.append(end_pos)  # 太短的线段不添加折线点
+		return points
+	
+	# 决定折线点数量
+	var bend_count = 0
+	if randf() < branch_bend_probability:
+		# 确保最小值不超过最大值
+		var min_count = max(0, branch_bend_min_points)
+		var max_count = max(min_count, branch_bend_max_points)
+		bend_count = randi_range(min_count, max_count)
+	
+	# 生成中间折线点
+	if bend_count > 0:
+		if branch_bend_enable_coordinated:
+			# 协调弯曲模式：所有点向协调的方向弯曲
+			_generate_coordinated_branch_bend_points(points, start_pos, end_pos, perpendicular, bend_count)
+		else:
+			# 传统随机弯曲模式
+			_generate_random_branch_bend_points(points, start_pos, end_pos, perpendicular, bend_count)
+	
+	points.append(end_pos)  # 终点
+	return points
+
+## 生成协调branch弯曲点
+func _generate_coordinated_branch_bend_points(points: Array[Vector2], start_pos: Vector2, end_pos: Vector2, perpendicular: Vector2, bend_count: int):
+	# 为整条branch选择一个主弯曲方向
+	var main_bend_direction = 1.0 if randf() > 0.5 else -1.0
+	
+	# 为整条branch选择一个基础偏移量（用于平滑模式）
+	var base_branch_offset = randf_range(branch_bend_min_offset, branch_bend_max_offset)
+	
+	# 生成中间折线点
+	for i in range(bend_count):
+		# 计算沿线段的位置（等分）
+		var t = float(i + 1) / float(bend_count + 1)
+		var base_point = start_pos.lerp(end_pos, t)
+		
+		# 计算弧形强度因子（创造自然的弧形效果）
+		var arc_factor = 1.0
+		if branch_bend_arc_intensity > 0.0:
+			# 使用正弦函数创造弧形分布，中间最强，两端较弱
+			var progress = float(i) / float(bend_count - 1) if bend_count > 1 else 0.5
+			arc_factor = sin(progress * PI) * branch_bend_arc_intensity + (1.0 - branch_bend_arc_intensity)
+		
+		# 计算偏移量（应用平滑度控制）
+		var base_offset: float
+		if branch_bend_offset_smoothness >= 1.0:
+			# 完全平滑：所有点使用相同的基础偏移
+			base_offset = base_branch_offset
+		else:
+			# 混合模式：在平滑偏移和随机偏移之间插值
+			var smooth_offset = base_branch_offset
+			var random_offset = randf_range(branch_bend_min_offset, branch_bend_max_offset)
+			base_offset = lerp(random_offset, smooth_offset, branch_bend_offset_smoothness)
+		
+		# 应用方向一致性
+		var final_direction = main_bend_direction
+		if branch_bend_direction_consistency < 1.0:
+			# 允许一些随机性，但仍然倾向于主方向
+			var random_factor = (randf() - 0.5) * 2.0 * (1.0 - branch_bend_direction_consistency)
+			final_direction = main_bend_direction + random_factor
+			# 确保方向在合理范围内
+			final_direction = clamp(final_direction, -1.0, 1.0)
+		
+		# 应用所有因子计算最终偏移
+		var offset_amount = base_offset * arc_factor * final_direction
+		var offset_point = base_point + perpendicular * offset_amount
+		
+		points.append(offset_point)
+
+## 生成传统随机branch弯曲点（保持向后兼容）
+func _generate_random_branch_bend_points(points: Array[Vector2], start_pos: Vector2, end_pos: Vector2, perpendicular: Vector2, bend_count: int):
+	for i in range(bend_count):
+		# 计算沿线段的位置（等分）
+		var t = float(i + 1) / float(bend_count + 1)
+		var base_point = start_pos.lerp(end_pos, t)
+		
+		# 添加垂直偏移（原始随机方法）
+		var offset_direction = 1.0 if randf() > 0.5 else -1.0  # 随机选择偏移方向
+		var offset_amount = randf_range(branch_bend_min_offset, branch_bend_max_offset) * offset_direction
+		var offset_point = base_point + perpendicular * offset_amount
+		
+		points.append(offset_point)
+
+## 创建带弯曲的branch线段
+func _create_branch_line_with_bend(points: Array[Vector2]):
+	if points.size() < 2:
+		return
+	
+	var line = Line2D.new()
+	line.joint_mode = Line2D.LINE_JOINT_ROUND  # 设置圆角连接
+	
+	# 添加所有点到Line2D
+	for point in points:
+		line.add_point(to_local(point))
+	
+	line.width = branch_line_width  # 使用branch专用宽度
+	line.default_color = branch_line_color
 	
 	# 获取Fruitlayer节点并添加Line2D
 	var fruits_controller = get_parent()

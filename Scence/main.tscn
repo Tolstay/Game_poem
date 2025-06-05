@@ -91,8 +91,6 @@ texture = SubResource("AtlasTexture_k2005")
 
 [node name="BranchGenerator" parent="SubViewportContainer/SubViewport/Fruits" instance=ExtResource("2_branch_gen")]
 unique_name_in_owner = true
-line_trunk_color = Color(0, 0, 0, 1)
-line_branch_color = Color(0, 0, 0, 1)
 
 [node name="Movement" parent="SubViewportContainer/SubViewport" instance=ExtResource("4_g1tjp")]
 position = Vector2(579, 339)
