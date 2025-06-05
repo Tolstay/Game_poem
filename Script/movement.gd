@@ -4,7 +4,7 @@ extends CharacterBody2D
 ## 支持鼠标跟随移动，无重力影响
 
 # 移动参数
-@export var move_speed: float = 150.0  # 移动速度
+@export var move_speed: float = 180.0  # 移动速度
 @export var acceleration: float = 600.0  # 加速度
 @export var friction: float = 1000.0  # 摩擦力/减速度
 

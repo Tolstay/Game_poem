@@ -5,9 +5,9 @@ extends Node2D
 
 # 生成参数
 @export var branch_length: float = 100.0
-@export var min_branch_length: float = 60.0  # 分支长度下限
-@export var max_branch_length: float = 80.0  # 分支长度上限
-@export var length_randomness: float = 0.8  # 长度随机化频率 (0.0=固定长度, 1.0=完全随机)
+@export var min_branch_length: float = 70.0  # 分支长度下限
+@export var max_branch_length: float = 120.0  # 分支长度上限
+@export var length_randomness: float = 0.7  # 长度随机化频率 (0.0=固定长度, 1.0=完全随机)
 @export var line_width: float = 3.0
 
 @export_group("Line Colors", "line_")
@@ -17,17 +17,21 @@ extends Node2D
 @export_group("Generation Angles", "angle_")
 @export var angle_min_degrees: float = 30.0  # 最小分支角度（度）
 @export var angle_max_degrees: float = 85.0  # 最大分支角度（度）
-@export var angle_min_branch_separation_degrees: float = 60.0  # 同一生成点的分支之间最小角度（度）
+@export var angle_min_branch_separation_degrees: float = 50.0  # 同一生成点的分支之间最小角度（度）
 
 @export var trunk_point_radius: float = 60.0  # trunk点的碰撞半径
 
 @export_group("Bend System", "bend_")
-@export var bend_min_points: int = 1  # 最小折线点数量
-@export var bend_max_points: int = 1     # 最大折线点数量
+@export var bend_min_points: int = 5  # 最小折线点数量
+@export var bend_max_points: int = 10     # 最大折线点数量
 @export var bend_probability: float = 1  # 生成折线点的概率
 @export var bend_min_offset: float = 3.0  # 最小垂直偏移距离
-@export var bend_max_offset: float = 5.0  # 最大垂直偏移距离
+@export var bend_max_offset: float = 12.0  # 最大垂直偏移距离
 @export var bend_min_segment_length: float = 50.0  # 生成折线点的最小线段长度
+@export var bend_enable_coordinated: bool = true  # 是否启用协调弯曲（避免曲折）
+@export var bend_arc_intensity: float = 1  # 弧形强度（0.0=直线分布，1.0=完整弧形）
+@export var bend_direction_consistency: float = 1.0  # 方向一致性（0.0=完全随机，1.0=完全一致）
+@export var bend_offset_smoothness: float = 0.8  # 偏移量平滑度（0.0=完全随机，1.0=完全平滑）
 
 # 生成点场景
 const TRUNK_POINT_SCENE = preload("res://Scence/trunk_point.tscn")
@@ -536,16 +540,19 @@ func _get_segment_curve_points(segment_index: int, fruits_controller) -> Array[V
 			return []
 		return [segment_data.start_pos, segment_data.end_pos]
 
-## 在曲线上按比例采样位置
+## 在曲线上按比例采样位置（改进版，确保branch point不脱落）
 func _sample_curve_at_ratio(curve_points: Array[Vector2], ratio: float) -> Vector2:
 	if curve_points.size() < 2:
 		return Vector2.ZERO
+	
+	# 确保ratio在有效范围内
+	ratio = clamp(ratio, 0.0, 1.0)
 	
 	if curve_points.size() == 2:
 		# 只有两个点，直接插值
 		return curve_points[0].lerp(curve_points[1], ratio)
 	
-	# 计算曲线总长度
+	# 计算曲线总长度和每段长度
 	var total_length = 0.0
 	var segment_lengths: Array[float] = []
 	
@@ -554,6 +561,10 @@ func _sample_curve_at_ratio(curve_points: Array[Vector2], ratio: float) -> Vecto
 		segment_lengths.append(segment_length)
 		total_length += segment_length
 	
+	# 防止除零错误
+	if total_length <= 0.0:
+		return curve_points[0]
+	
 	# 根据比例计算目标距离
 	var target_distance = total_length * ratio
 	
@@ -561,18 +572,26 @@ func _sample_curve_at_ratio(curve_points: Array[Vector2], ratio: float) -> Vecto
 	var accumulated_distance = 0.0
 	for i in range(segment_lengths.size()):
 		var segment_length = segment_lengths[i]
+		
+		# 检查目标点是否在当前线段上
 		if accumulated_distance + segment_length >= target_distance:
 			# 目标点在这个线段上
 			var local_distance = target_distance - accumulated_distance
 			var local_ratio = local_distance / segment_length if segment_length > 0 else 0.0
+			
+			# 确保local_ratio在有效范围内
+			local_ratio = clamp(local_ratio, 0.0, 1.0)
 			
 			var sampled_pos = curve_points[i].lerp(curve_points[i + 1], local_ratio)
 			return sampled_pos
 		
 		accumulated_distance += segment_length
 	
-	# 如果没有找到（理论上不应该发生），返回终点
-	return curve_points[curve_points.size() - 1]
+	# 如果没有找到（边界情况），返回最接近的端点
+	if ratio <= 0.0:
+		return curve_points[0]
+	else:
+		return curve_points[curve_points.size() - 1]
 
 ## 直线插值branch位置生成（降级方案）
 func _generate_branch_position_linear(segment_data: Dictionary) -> Vector2:
@@ -597,7 +616,7 @@ func generate_trunk_with_bend(start_pos: Vector2, end_pos: Vector2, fruits_contr
 	if fruits_controller and fruits_controller.has_method("_store_bend_points_for_future_processing"):
 		fruits_controller._store_bend_points_for_future_processing(all_points, segment_index)
 
-## 计算折线点（包括起点和终点）
+## 计算折线点（包括起点和终点）- 支持协调弯曲
 func _calculate_bend_points(start_pos: Vector2, end_pos: Vector2) -> Array[Vector2]:
 	var points: Array[Vector2] = []
 	points.append(start_pos)  # 起点
@@ -621,20 +640,77 @@ func _calculate_bend_points(start_pos: Vector2, end_pos: Vector2) -> Array[Vecto
 		bend_count = randi_range(min_count, max_count)  # bend_min_points到bend_max_points
 	
 	# 生成中间折线点
+	if bend_count > 0:
+		if bend_enable_coordinated:
+			# 协调弯曲模式：所有点向协调的方向弯曲
+			_generate_coordinated_bend_points(points, start_pos, end_pos, perpendicular, bend_count)
+		else:
+			# 传统随机弯曲模式（保持向后兼容）
+			_generate_random_bend_points(points, start_pos, end_pos, perpendicular, bend_count)
+	
+	points.append(end_pos)  # 终点
+	return points
+
+## 生成协调弯曲点（新方法）
+func _generate_coordinated_bend_points(points: Array[Vector2], start_pos: Vector2, end_pos: Vector2, perpendicular: Vector2, bend_count: int):
+	# 为整条trunk选择一个主弯曲方向
+	var main_bend_direction = 1.0 if randf() > 0.5 else -1.0
+	
+	# 为整条trunk选择一个基础偏移量（用于平滑模式）
+	var base_trunk_offset = randf_range(bend_min_offset, bend_max_offset)
+	
+	# 生成中间折线点
 	for i in range(bend_count):
 		# 计算沿线段的位置（等分）
 		var t = float(i + 1) / float(bend_count + 1)
 		var base_point = start_pos.lerp(end_pos, t)
 		
-		# 添加垂直偏移（确保至少达到最小偏移距离）
+		# 计算弧形强度因子（创造自然的弧形效果）
+		var arc_factor = 1.0
+		if bend_arc_intensity > 0.0:
+			# 使用正弦函数创造弧形分布，中间最强，两端较弱
+			var progress = float(i) / float(bend_count - 1) if bend_count > 1 else 0.5
+			arc_factor = sin(progress * PI) * bend_arc_intensity + (1.0 - bend_arc_intensity)
+		
+		# 计算偏移量（应用平滑度控制）
+		var base_offset: float
+		if bend_offset_smoothness >= 1.0:
+			# 完全平滑：所有点使用相同的基础偏移
+			base_offset = base_trunk_offset
+		else:
+			# 混合模式：在平滑偏移和随机偏移之间插值
+			var smooth_offset = base_trunk_offset
+			var random_offset = randf_range(bend_min_offset, bend_max_offset)
+			base_offset = lerp(random_offset, smooth_offset, bend_offset_smoothness)
+		
+		# 应用方向一致性
+		var final_direction = main_bend_direction
+		if bend_direction_consistency < 1.0:
+			# 允许一些随机性，但仍然倾向于主方向
+			var random_factor = (randf() - 0.5) * 2.0 * (1.0 - bend_direction_consistency)
+			final_direction = main_bend_direction + random_factor
+			# 确保方向在合理范围内
+			final_direction = clamp(final_direction, -1.0, 1.0)
+		
+		# 应用所有因子计算最终偏移
+		var offset_amount = base_offset * arc_factor * final_direction
+		var offset_point = base_point + perpendicular * offset_amount
+		
+		points.append(offset_point)
+
+## 生成传统随机弯曲点（保持向后兼容）
+func _generate_random_bend_points(points: Array[Vector2], start_pos: Vector2, end_pos: Vector2, perpendicular: Vector2, bend_count: int):
+	for i in range(bend_count):
+		# 计算沿线段的位置（等分）
+		var t = float(i + 1) / float(bend_count + 1)
+		var base_point = start_pos.lerp(end_pos, t)
+		
+		# 添加垂直偏移（原始随机方法）
 		var offset_direction = 1.0 if randf() > 0.5 else -1.0  # 随机选择偏移方向
 		var offset_amount = randf_range(bend_min_offset, bend_max_offset) * offset_direction
 		var offset_point = base_point + perpendicular * offset_amount
 		
 		points.append(offset_point)
-	
-	points.append(end_pos)  # 终点
-	return points
 
 ## 创建带弯曲的trunk线段
 func _create_trunk_line_with_bend(points: Array[Vector2]):
