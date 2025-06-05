@@ -62,7 +62,7 @@ var fruit_layer: Node2D
 # Branch生成参数
 var branch_position_min: float = 0.15  # branch_point在线段上的最小位置（0.0-1.0）
 var branch_position_max: float = 0.85  # branch_point在线段上的最大位置（0.0-1.0）
-var branch_collision_radius: float = 15.0  # branch_point的碰撞半径（决定实际可容纳数量）
+var branch_collision_radius: float = 30.0  # branch_point的碰撞半径（决定实际可容纳数量）
 
 # Branch角度控制参数
 var branch_min_angle_degrees: float = 40.0  # branch相对trunk的最小角度（度）

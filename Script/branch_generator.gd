@@ -29,19 +29,19 @@ extends Node2D
 @export_group("Branch Bend System", "branch_bend_")
 @export var branch_bend_enabled: bool = true  # 是否启用Branch弯曲
 @export var branch_bend_min_points: int = 3  # Branch最小折线点数量
-@export var branch_bend_max_points: int = 4  # Branch最大折线点数量
+@export var branch_bend_max_points: int = 10  # Branch最大折线点数量
 @export var branch_bend_probability: float = 1  # Branch生成折线点的概率
-@export var branch_bend_min_offset: float = 2.0  # Branch最小垂直偏移距离
-@export var branch_bend_max_offset: float = 5.0  # Branch最大垂直偏移距离
+@export var branch_bend_min_offset: float = 4.0  # Branch最小垂直偏移距离
+@export var branch_bend_max_offset: float = 7.0  # Branch最大垂直偏移距离
 @export var branch_bend_min_segment_length: float = 10.0  # Branch生成折线点的最小线段长度
 @export var branch_bend_enable_coordinated: bool = true  # 是否启用Branch协调弯曲
-@export var branch_bend_arc_intensity: float = 0.7  # Branch弧形强度
+@export var branch_bend_arc_intensity: float = 0.8  # Branch弧形强度
 @export var branch_bend_direction_consistency: float = 1  # Branch方向一致性
 @export var branch_bend_offset_smoothness: float = 0.7  # Branch偏移量平滑度
 
 @export_group("Branch System", "branch_")
 @export var branch_length_min: float = 40.0  # Branch最小长度
-@export var branch_length_max: float = 80.0  # Branch最大长度
+@export var branch_length_max: float = 60.0  # Branch最大长度
 @export var branch_length_randomness: float = 0.8  # Branch长度随机化频率
 @export var branch_line_width: float = 2.0  # Branch线段宽度
 @export var branch_line_color: Color = Color.BLACK  # Branch线段颜色
