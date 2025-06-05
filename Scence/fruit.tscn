@@ -23,6 +23,10 @@ texture = SubResource("AtlasTexture_ejhox")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CapsuleShape2D_ceewg")
 
+[node name="Marker2D" type="Marker2D" parent="."]
+position = Vector2(0, 11)
+rotation = -0.0755525
+
 [node name="Logic" type="Node2D" parent="."]
 
 [node name="pickoff" parent="Logic" instance=ExtResource("2_ceewg")]

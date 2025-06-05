@@ -41,8 +41,7 @@ var trunk_segments: Array[Dictionary] = []
 #   "curve_points": Array[Vector2]  # 完整的弯曲路径点（包括起点、折线点、终点）
 # }
 
-# 可视化标签节点
-var segment_labels: Array[Label] = []
+
 
 # 生成器引用
 var generator: Node2D
@@ -55,28 +54,20 @@ var fruit_layer: Node2D
 @export var min_branch_points_per_segment: int = 1       # 每线段最少branch_point数（物理约束的最小值）
 @export var max_branch_points_per_segment: int = 3       # 每线段最多branch_point数（物理约束的最大值）
 
-# 显示控制参数
-@export_group("Display Controls", "display_")
-@export var display_segment_labels: bool = false   # 是否显示线段剩余次数标签
 
-# Branch生成参数
+
+# Branch生成参数（仅保留位置相关参数）
 var branch_position_min: float = 0.15  # branch_point在线段上的最小位置（0.0-1.0）
 var branch_position_max: float = 0.85  # branch_point在线段上的最大位置（0.0-1.0）
-var branch_collision_radius: float = 30.0  # branch_point的碰撞半径（决定实际可容纳数量）
-
-# Branch角度控制参数
-var branch_min_angle_degrees: float = 40.0  # branch相对trunk的最小角度（度）
-var branch_max_angle_degrees: float = 65.0  # branch相对trunk的最大角度（度）
-
-# Branch长度参数
-var branch_min_length: float = 35.0  # branch的最小长度
-var branch_max_length: float = 45.0  # branch的最大长度
+var branch_collision_radius: float = 40.0  # branch_point的碰撞半径（决定实际可容纳数量）
 
 # 折线点branch生成参数
 @export_group("Bend Point Branch Generation", "bend_branch_")
 @export var bend_branch_enabled: bool = true  # 是否启用基于折线点的branch生成
 @export var bend_branch_probability: float = 0.6  # 每个折线点生成branch_point的概率
 @export var bend_branch_collision_radius: float = 25.0  # 折线点branch_point的碰撞半径
+
+
 
 # 记录本轮参与生成的点
 var points_used_this_round: Array[int] = []
@@ -233,11 +224,6 @@ func _record_trunk_segment(start_point_index: int, end_point_index: int):
 	}
 	
 	trunk_segments.append(segment_data)
-	var segment_index = trunk_segments.size() - 1
-	
-	# 创建可视化标签
-	if display_segment_labels:
-		_create_segment_label(segment_index, start_pos, end_pos, max_branch_points)
 
 # ==================== Branch点生成 ====================
 
@@ -272,12 +258,7 @@ func _get_segment_data(segment_index: int) -> Dictionary:
 		"segment": segment
 	}
 
-## 在线段上生成branch位置（当前使用直线插值，后续会改为曲线采样）
-func _generate_branch_position_on_segment(segment_data: Dictionary) -> Vector2:
-	var start_pos = segment_data.start_pos
-	var end_pos = segment_data.end_pos
-	var t = randf_range(branch_position_min, branch_position_max)
-	return start_pos.lerp(end_pos, t)
+
 
 ## 在指定位置创建branch_point（统一接口）
 func _create_branch_point_at_position(branch_pos: Vector2, segment_index: int) -> int:
@@ -304,10 +285,6 @@ func _update_segment_branch_count(segment_index: int, branch_point_index: int):
 	if segment_index < trunk_segments.size():
 		trunk_segments[segment_index].current_branch_count += 1
 		trunk_segments[segment_index].branch_point_indices.append(branch_point_index)
-		
-		# 更新可视化标签
-		if display_segment_labels:
-			_update_segment_label(segment_index)
 
 # ==================== 折线点Branch生成 ====================
 
@@ -442,12 +419,7 @@ func get_available_points_count() -> int:
 			count += 1
 	return count
 
-## 获取生成点的详细状态信息
-func get_points_status():
-	for i in range(point_positions.size()):
-		var _status = "可用" if point_states[i] > 0 else "已耗尽"
-		var _type_name = "TRUNK" if point_types[i] == PointType.TRUNK_POINT else "BRANCH"
-		var _branch_count = point_generated_branches[i].size() if i < point_generated_branches.size() else 0
+
 
 ## 设置点为无空间状态
 func set_point_no_space(point_index: int):
@@ -462,58 +434,7 @@ func set_point_no_space(point_index: int):
 	else:
 		point_status[point_index] = PointStatus.PATH_TRUNK  # 有剩余次数但无路径
 
-# ==================== 可视化标签管理 ====================
 
-## 创建线段可视化标签
-func _create_segment_label(segment_index: int, start_pos: Vector2, end_pos: Vector2, max_branch_points: int):
-	if not display_segment_labels:
-		return
-		
-	var label = Label.new()
-	label.text = str(max_branch_points)
-	label.add_theme_color_override("font_color", Color.WHITE)
-	
-	# 设置标签位置（线段中点）
-	var mid_pos = (start_pos + end_pos) / 2.0
-	label.global_position = mid_pos
-	
-	add_child(label)
-	
-	# 确保segment_labels数组有足够的空间
-	while segment_labels.size() <= segment_index:
-		segment_labels.append(null)
-	
-	segment_labels[segment_index] = label
-
-## 更新线段标签显示
-func _update_segment_label(segment_index: int):
-	if not display_segment_labels:
-		return
-		
-	if segment_index >= segment_labels.size() or segment_index >= trunk_segments.size():
-		return
-	
-	var segment = trunk_segments[segment_index]
-	var remaining = segment.max_branch_points - segment.current_branch_count
-	var label = segment_labels[segment_index]
-	
-	if label and is_instance_valid(label):
-		label.text = str(remaining)
-		# 根据剩余数量改变颜色
-		if remaining <= 0:
-			label.add_theme_color_override("font_color", Color.RED)
-		elif remaining <= 1:
-			label.add_theme_color_override("font_color", Color.YELLOW)
-		else:
-			label.add_theme_color_override("font_color", Color.WHITE)
-
-## 切换标签显示
-func toggle_segment_labels():
-	display_segment_labels = !display_segment_labels
-	
-	for label in segment_labels:
-		if label and is_instance_valid(label):
-			label.visible = display_segment_labels
 
 # ==================== 清理和维护 ====================
 
@@ -522,11 +443,7 @@ func _post_generation_cleanup():
 	# 清空本轮使用记录
 	points_used_this_round.clear()
 
-## 调试：显示所有线段状态
-func print_all_segment_status():
-	for i in range(trunk_segments.size()):
-		var segment = trunk_segments[i]
-		var _remaining = segment.max_branch_points - segment.current_branch_count
+
 
 ## 供generator调用的接口方法 ====================
 
@@ -785,10 +702,22 @@ func generate_fruit_at_point(point_index: int):
 	
 	var point_position = point_positions[point_index]
 	var fruit = FRUIT_SCENE.instantiate()
-	fruit.global_position = point_position
 	
 	# 计算fruit的正确旋转方向
 	var fruit_rotation = _calculate_fruit_rotation(point_index)
+	
+	# 查找fruit场景中的Marker2D节点
+	var marker = _find_marker2d_in_fruit(fruit)
+	if marker:
+		# 计算marker相对fruit根节点的偏移
+		var marker_offset = marker.position
+		# 根据旋转调整偏移方向
+		var rotated_offset = marker_offset.rotated(fruit_rotation)
+		# 设置fruit位置，使marker对齐目标点
+		fruit.global_position = point_position - rotated_offset
+	else:
+		# 如果没找到marker，使用原来的中心对齐方式
+		fruit.global_position = point_position
 	
 	# 获取fruit的Sprite2D节点并设置旋转
 	var sprite = fruit.get_node("Sprite2D")
@@ -805,6 +734,21 @@ func generate_fruit_at_point(point_index: int):
 	while points_with_fruit.size() <= point_index:
 		points_with_fruit.append(false)
 	points_with_fruit[point_index] = true
+
+## 在fruit实例中查找Marker2D节点
+func _find_marker2d_in_fruit(fruit_node: Node) -> Marker2D:
+	# 直接检查是否有Marker2D子节点
+	for child in fruit_node.get_children():
+		if child is Marker2D:
+			return child
+	
+	# 如果没找到，递归查找
+	for child in fruit_node.get_children():
+		var found_marker = _find_marker2d_in_fruit(child)
+		if found_marker:
+			return found_marker
+	
+	return null
 
 ## 获取当前trunk数量（供main调用）
 func get_trunk_count() -> int:

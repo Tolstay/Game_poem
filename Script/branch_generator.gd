@@ -43,7 +43,12 @@ extends Node2D
 @export var branch_length_min: float = 40.0  # Branch最小长度
 @export var branch_length_max: float = 60.0  # Branch最大长度
 @export var branch_length_randomness: float = 0.8  # Branch长度随机化频率
-@export var branch_line_width: float = 2.0  # Branch线段宽度
+@export var branch_min_angle_degrees: float = 40.0  # branch相对trunk的最小角度（度）
+@export var branch_max_angle_degrees: float = 65.0  # branch相对trunk的最大角度（度）
+@export var branch_collision_radius: float = 30.0  # branch_point的碰撞半径（决定实际可容纳数量）
+@export var branch_position_min: float = 0.15  # branch_point在线段上的最小位置（0.0-1.0）
+@export var branch_position_max: float = 0.85  # branch_point在线段上的最大位置（0.0-1.0）
+@export var branch_line_width: float = 3.5  # Branch线段宽度
 @export var branch_line_color: Color = Color.BLACK  # Branch线段颜色
 
 # 生成点场景
@@ -407,9 +412,9 @@ func _generate_branch_direction(trunk_direction: Vector2, fruits_controller) -> 
 	# 随机选择左转或右转
 	var turn_left = randf() > 0.5
 	
-	# 生成随机角度偏移
-	var min_angle_rad = deg_to_rad(fruits_controller.branch_min_angle_degrees)
-	var max_angle_rad = deg_to_rad(fruits_controller.branch_max_angle_degrees)
+	# 生成随机角度偏移（使用本地参数）
+	var min_angle_rad = deg_to_rad(branch_min_angle_degrees)
+	var max_angle_rad = deg_to_rad(branch_max_angle_degrees)
 	var angle_offset = randf_range(min_angle_rad, max_angle_rad)
 	
 	# 计算新角度
@@ -419,9 +424,9 @@ func _generate_branch_direction(trunk_direction: Vector2, fruits_controller) -> 
 
 ## 检查branch线段是否与现有对象碰撞
 func _check_branch_line_collision(start_pos: Vector2, end_pos: Vector2, fruits_controller) -> bool:
-	# 检查与已有点的碰撞
+	# 检查与已有点的碰撞（使用本地参数）
 	for pos in fruits_controller.point_positions:
-		if (pos - end_pos).length() < fruits_controller.branch_collision_radius:
+		if (pos - end_pos).length() < branch_collision_radius:
 			return true
 	
 	# 检查与已有线段的交叉
@@ -537,7 +542,7 @@ func _generate_branch_position_on_curve(segment_data: Dictionary, segment_index:
 		return _generate_branch_position_linear(segment_data)
 	
 	# 使用曲线采样
-	return _sample_curve_at_ratio(curve_points, randf_range(fruits_controller.branch_position_min, fruits_controller.branch_position_max))
+	return _sample_curve_at_ratio(curve_points, randf_range(branch_position_min, branch_position_max))
 
 ## 获取线段的弯曲路径点
 func _get_segment_curve_points(segment_index: int, fruits_controller) -> Array[Vector2]:
@@ -606,13 +611,9 @@ func _sample_curve_at_ratio(curve_points: Array[Vector2], ratio: float) -> Vecto
 
 ## 直线插值branch位置生成（降级方案）
 func _generate_branch_position_linear(segment_data: Dictionary) -> Vector2:
-	var fruits_controller = get_parent()
-	var min_pos = fruits_controller.branch_position_min if fruits_controller else 0.15
-	var max_pos = fruits_controller.branch_position_max if fruits_controller else 0.85
-	
 	var start_pos = segment_data.start_pos
 	var end_pos = segment_data.end_pos
-	var t = randf_range(min_pos, max_pos)
+	var t = randf_range(branch_position_min, branch_position_max)
 	return start_pos.lerp(end_pos, t)
 
 ## 生成trunk线段（由fruits.gd调用，支持弯曲）
@@ -878,6 +879,11 @@ func _create_branch_line_with_bend(points: Array[Vector2]):
 	
 	line.width = branch_line_width  # 使用branch专用宽度
 	line.default_color = branch_line_color
+	
+	# 应用branch贴图
+	var branch_texture = preload("res://Asset/trunk/branch.png")
+	line.texture = branch_texture
+	line.texture_mode = Line2D.LINE_TEXTURE_TILE
 	
 	# 获取Fruitlayer节点并添加Line2D
 	var fruits_controller = get_parent()

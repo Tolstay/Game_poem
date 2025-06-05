@@ -82,6 +82,11 @@
 - **Branch Length Min** (像素): Branch最小长度
 - **Branch Length Max** (像素): Branch最大长度
 - **Branch Length Randomness** (0.0-1.0): Branch长度随机化频率
+- **Branch Min Angle Degrees** (度): branch相对trunk的最小角度
+- **Branch Max Angle Degrees** (度): branch相对trunk的最大角度
+- **Branch Collision Radius** (像素): branch_point的碰撞半径（决定实际可容纳数量）
+- **Branch Position Min** (0.0-1.0): branch_point在线段上的最小位置
+- **Branch Position Max** (0.0-1.0): branch_point在线段上的最大位置
 - **Branch Line Width** (像素): Branch线段宽度
 - **Branch Line Color**: Branch线段颜色
 
@@ -90,6 +95,13 @@
 - **Texture Use Random**: 是否为每条线段随机选择纹理
 
 ### Fruits节点参数
+
+#### Basic Settings（基础设置）
+- **Max Generations Per Point** (int): 每个生成点的最大生成次数
+- **Min Branch Points Per Segment** (int): 每线段最少branch_point数（物理约束的最小值）
+- **Max Branch Points Per Segment** (int): 每线段最多branch_point数（物理约束的最大值）
+
+
 
 #### Bend Point Branch Generation（弯曲点分支生成）
 - **Bend Branch Enabled**: 是否启用F键功能
