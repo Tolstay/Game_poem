@@ -4,11 +4,11 @@ extends Node2D
 ## 简单的生成逻辑，由Fruits控制器调用
 
 @export_group("Trunk System", "trunk_")
-@export var trunk_length_min: float = 70.0  # Trunk最小长度
+@export var trunk_length_min: float = 60.0  # Trunk最小长度
 @export var trunk_length_max: float = 120.0  # Trunk最大长度
-@export var trunk_length_randomness: float = 0.7  # Trunk长度随机化频率 (0.0=固定长度, 1.0=完全随机)
+@export var trunk_length_randomness: float = 0.6  # Trunk长度随机化频率 (0.0=固定长度, 1.0=完全随机)
 @export var trunk_angle_min_degrees: float = 30.0  # Trunk最小分支角度（度）
-@export var trunk_angle_max_degrees: float = 85.0  # Trunk最大分支角度（度）
+@export var trunk_angle_max_degrees: float = 70.0  # Trunk最大分支角度（度）
 @export var trunk_angle_min_separation_degrees: float = 50.0  # Trunk同一生成点的分支之间最小角度（度）
 @export var trunk_point_radius: float = 60.0  # Trunk点的碰撞半径
 @export var trunk_line_width: float = 4.0  # Trunk线段宽度

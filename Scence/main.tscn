@@ -105,7 +105,7 @@ script = ExtResource("10_xpfmo")
 
 [node name="StillThreshold" type="Timer" parent="Timers"]
 unique_name_in_owner = true
-wait_time = 2.5
+wait_time = 2.0
 one_shot = true
 
 [node name="Windrises" type="Timer" parent="Timers"]
