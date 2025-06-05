@@ -75,6 +75,10 @@ var points_used_this_round: Array[int] = []
 # 记录已实例化果实的节点
 var points_with_fruit: Array[bool] = []
 
+# 记录已实例化trunkend的节点
+var points_with_trunkend: Array[bool] = []
+var trunkend_instances: Array[Node2D] = []  # 记录trunkend实例的引用
+
 # 折线点管理（为"G"键功能预留）
 var stored_bend_points: Array[Vector2] = []  # 存储的折线点，等待"G"键处理
 var bend_point_segments: Array[int] = []  # 记录每个折线点所属的线段索引
@@ -83,6 +87,7 @@ var bend_point_segments: Array[int] = []  # 记录每个折线点所属的线段
 const BRANCH_POINT_SCENE = preload("res://Scence/branch_point.tscn")
 const FRUIT_SCENE = preload("res://Scence/fruit.tscn")
 const BLOODCUT_SCENE = preload("res://Scence/bloodcut.tscn")
+const TRUNKEND_SCENE = preload("res://trunkend.tscn")
 
 func _ready():
 	# 获取生成器引用
@@ -135,6 +140,8 @@ func _record_initial_points():
 			point_types.append(PointType.TRUNK_POINT)  # 初始点都是trunk点
 			point_parent_segments.append(-1)  # trunk点不属于任何线段
 			points_with_fruit.append(false)  # 初始化果实标记
+			points_with_trunkend.append(false)  # 初始化trunkend标记
+			trunkend_instances.append(null)  # 初始化trunkend实例引用
 
 ## 添加新生成点（trunk点）
 func _add_new_point(pos: Vector2, direction: Vector2 = Vector2.ZERO, node: Node2D = null):
@@ -148,6 +155,8 @@ func _add_new_point(pos: Vector2, direction: Vector2 = Vector2.ZERO, node: Node2
 	point_types.append(PointType.TRUNK_POINT)  # 新生成的点都是trunk点
 	point_parent_segments.append(-1)  # trunk点不属于任何线段
 	points_with_fruit.append(false)  # 初始化果实标记
+	points_with_trunkend.append(false)  # 初始化trunkend标记
+	trunkend_instances.append(null)  # 初始化trunkend实例引用
 	return new_point_index
 
 ## 添加新的branch_point到管理系统
@@ -162,6 +171,8 @@ func _add_branch_point(pos: Vector2, parent_segment_index: int, node: Node2D) ->
 	point_types.append(PointType.BRANCH_POINT)  # 标记为branch点
 	point_parent_segments.append(parent_segment_index)  # 记录所属线段
 	points_with_fruit.append(false)  # 初始化果实标记
+	points_with_trunkend.append(false)  # 初始化trunkend标记
+	trunkend_instances.append(null)  # 初始化trunkend实例引用
 	
 	return branch_point_index
 
@@ -472,15 +483,38 @@ func mark_branch_point_exhausted(point_index: int):
 		point_states[point_index] = 0
 		point_status[point_index] = PointStatus.EXHAUSTED
 
-## 检查是否有终点状态的节点，实例化果实
+## 检查是否有终点状态的节点，实例化果实和trunkend
 func _instantiate_fruits_at_endpoint_nodes():
+	print("开始检查终点状态节点...")
+	
 	# 确保points_with_fruit数组大小与点位数组同步
 	while points_with_fruit.size() < point_positions.size():
 		points_with_fruit.append(false)
 	
+	var two_generations_count = 0
+	var end_branch_count = 0
+	
 	for i in range(point_positions.size()):
-		# 检查是否为END_TRUNK或END_BRANCH状态，并且还没有果实
-		if (point_status[i] == PointStatus.END_TRUNK or point_status[i] == PointStatus.END_BRANCH) and not points_with_fruit[i]:
+		# 统计还有2次生成机会的trunk点
+		if point_types[i] == PointType.TRUNK_POINT and point_states[i] == 2 and point_status[i] == PointStatus.AVAILABLE:
+			two_generations_count += 1
+		elif point_status[i] == PointStatus.END_BRANCH:
+			end_branch_count += 1
+	
+	print("发现还有2次生成机会的trunk点数量: ", two_generations_count)
+	print("发现END_BRANCH状态点数量: ", end_branch_count)
+	
+	for i in range(point_positions.size()):
+		# 检查是否为还有2次生成机会的trunk点，生成trunkend
+		if point_types[i] == PointType.TRUNK_POINT and point_states[i] == 2 and point_status[i] == PointStatus.AVAILABLE:
+			# 检查是否已经有trunkend
+			var has_trunkend = i < points_with_trunkend.size() and points_with_trunkend[i]
+			if not has_trunkend:
+				print("找到还有2次生成机会的trunk点，索引: ", i, " 位置: ", point_positions[i])
+				_generate_trunkend_at_point(i)
+		
+		# 检查是否为END_BRANCH状态，生成bloodcut和fruit
+		elif point_status[i] == PointStatus.END_BRANCH and not points_with_fruit[i]:
 			# 先实例化bloodcut
 			var bloodcut = BLOODCUT_SCENE.instantiate()
 			bloodcut.global_position = point_positions[i]
@@ -535,6 +569,33 @@ func _calculate_fruit_rotation(point_index: int) -> float:
 	var rotation_angle = growth_direction.angle() - Vector2.UP.angle()
 	
 	return rotation_angle
+
+## 计算trunk点的最终生成方向
+func _calculate_trunk_final_direction(point_index: int) -> Vector2:
+	# 优先使用point_directions中记录的生长方向
+	if point_index < point_directions.size() and point_directions[point_index] != Vector2.ZERO:
+		return point_directions[point_index].normalized()
+	
+	# 如果没有记录的方向，尝试从已生成的分支计算平均方向
+	if point_index < point_generated_branches.size():
+		var branches = point_generated_branches[point_index]
+		if branches.size() > 0:
+			var sum_direction = Vector2.ZERO
+			for branch_dir in branches:
+				sum_direction += branch_dir
+			return (sum_direction / branches.size()).normalized()
+	
+	# 如果是trunk点，尝试从最近生成的线段计算方向
+	for segment_index in range(trunk_segments.size()):
+		var segment = trunk_segments[segment_index]
+		if segment.end_point_index == point_index:
+			# 这个点是某个线段的终点，计算线段方向
+			var start_pos = point_positions[segment.start_point_index]
+			var end_pos = point_positions[point_index]
+			return (end_pos - start_pos).normalized()
+	
+	# 默认方向（向上）
+	return Vector2.UP
 
 ## 从父线段计算生长方向
 func _calculate_growth_direction_from_parent(point_index: int) -> Vector2:
@@ -620,6 +681,9 @@ func execute_trunk_generation() -> bool:
 	
 	# 生成完成后，减少参与生成的点的剩余次数
 	_decrease_generation_counts()
+	
+	# 清理已耗尽生成次数的trunkend
+	_cleanup_exhausted_trunkends()
 	
 	# 检查是否有终点状态的节点，实例化果实
 	_instantiate_fruits_at_endpoint_nodes()
@@ -749,6 +813,78 @@ func _find_marker2d_in_fruit(fruit_node: Node) -> Marker2D:
 			return found_marker
 	
 	return null
+
+## 在指定点位生成trunkend（延续原有角度，对齐marker）
+func _generate_trunkend_at_point(point_index: int):
+	print("尝试生成trunkend，点索引: ", point_index)
+	
+	if point_index >= point_positions.size():
+		print("错误：点索引超出范围")
+		return
+	
+	# 使用预加载的trunkend场景
+	var trunkend_scene = TRUNKEND_SCENE
+	if not trunkend_scene:
+		print("警告：无法加载trunkend场景，请确保路径正确")
+		return
+	
+	print("成功加载trunkend场景")
+	
+	var point_position = point_positions[point_index]
+	var trunkend = trunkend_scene.instantiate()
+	
+	print("在位置生成trunkend: ", point_position)
+	
+	# 计算trunk点的最终生成方向
+	var trunk_direction = _calculate_trunk_final_direction(point_index)
+	print("计算得到trunk生成方向: ", trunk_direction)
+	
+	# 应用旋转角度到trunkend
+	var trunkend_rotation = trunk_direction.angle()
+	trunkend.rotation = trunkend_rotation
+	print("应用旋转角度: ", rad_to_deg(trunkend_rotation), "度")
+	
+	# 直接根据trunkend的position进行对齐生成
+	trunkend.global_position = point_position
+	print("trunkend已对齐到位置: ", point_position)
+	
+	# 添加到Fruitlayer
+	if fruit_layer:
+		fruit_layer.add_child(trunkend)
+		print("trunkend已添加到Fruitlayer")
+	else:
+		add_child(trunkend)
+		print("trunkend已添加到当前节点")
+	
+	# 记录trunkend实例
+	while points_with_trunkend.size() <= point_index:
+		points_with_trunkend.append(false)
+	while trunkend_instances.size() <= point_index:
+		trunkend_instances.append(null)
+	
+	points_with_trunkend[point_index] = true
+	trunkend_instances[point_index] = trunkend
+
+## 清理已耗尽生成次数的trunk点上的trunkend
+func _cleanup_exhausted_trunkends():
+	print("开始清理已耗尽的trunkend...")
+	
+	var cleaned_count = 0
+	for i in range(point_positions.size()):
+		# 检查是否有trunkend且生成次数已耗尽
+		if i < points_with_trunkend.size() and points_with_trunkend[i] and \
+		   i < point_states.size() and point_states[i] <= 0 and \
+		   i < point_types.size() and point_types[i] == PointType.TRUNK_POINT:
+			
+			# 删除trunkend实例
+			if i < trunkend_instances.size() and trunkend_instances[i]:
+				print("删除点", i, "的trunkend，位置:", point_positions[i])
+				trunkend_instances[i].queue_free()
+				trunkend_instances[i] = null
+				points_with_trunkend[i] = false
+				cleaned_count += 1
+	
+	print("清理完成，共删除", cleaned_count, "个trunkend")
 
 ## 获取当前trunk数量（供main调用）
 func get_trunk_count() -> int:

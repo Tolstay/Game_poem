@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://n1fnnim20kq7"]
+
+[ext_resource type="Texture2D" uid="uid://c74a5qkv3slfm" path="res://Asset/trunkend.png" id="1_egbpr"]
+
+[node name="trunkend" type="Node2D"]
+scale = Vector2(0.320002, 0.444446)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(9.37493, 1.27897e-13)
+rotation = 6.28319
+scale = Vector2(0.46001, 0.46001)
+texture = ExtResource("1_egbpr")
