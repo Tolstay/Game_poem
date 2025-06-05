@@ -15,7 +15,7 @@
 
 [sub_resource type="Curve" id="Curve_01llu"]
 _limits = [0.355749, 10.0, 1.0, 20.0]
-_data = [Vector2(1, 2), 0.0, 0.0, 0, 0, Vector2(2, 4), 0.0, 0.0, 0, 0, Vector2(20, 10), 0.0, 0.0, 0, 0]
+_data = [Vector2(1, 2), 0.0, 0.0, 0, 0, Vector2(2, 4), 0.0, 0.0, 0, 0, Vector2(20, 8), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="Curve" id="Curve_alkcg"]
