@@ -499,16 +499,6 @@ func _instantiate_fruits_at_endpoint_nodes():
 	while points_with_fruit.size() < point_positions.size():
 		points_with_fruit.append(false)
 	
-	var two_generations_count = 0
-	var end_branch_count = 0
-	
-	for i in range(point_positions.size()):
-		# 统计还有2次生成机会的trunk点
-		if point_types[i] == PointType.TRUNK_POINT and point_states[i] == 2 and point_status[i] == PointStatus.AVAILABLE:
-			two_generations_count += 1
-		elif point_status[i] == PointStatus.END_BRANCH:
-			end_branch_count += 1
-	
 	for i in range(point_positions.size()):
 		# 检查是否为还有2次生成机会的trunk点，生成trunkend
 		if point_types[i] == PointType.TRUNK_POINT and point_states[i] == 2 and point_status[i] == PointStatus.AVAILABLE:
@@ -881,7 +871,6 @@ func _generate_trunkend_at_point(point_index: int):
 
 ## 清理已耗尽生成次数的trunk点上的trunkend
 func _cleanup_exhausted_trunkends():
-	var cleaned_count = 0
 	for i in range(point_positions.size()):
 		# 检查是否有trunkend且生成次数已耗尽
 		if i < points_with_trunkend.size() and points_with_trunkend[i] and \
@@ -893,7 +882,6 @@ func _cleanup_exhausted_trunkends():
 				trunkend_instances[i].queue_free()
 				trunkend_instances[i] = null
 				points_with_trunkend[i] = false
-				cleaned_count += 1
 
 ## 获取当前trunk数量（供main调用）
 func get_trunk_count() -> int:
@@ -933,7 +921,7 @@ func get_bloodcut_at_point(point_index: int) -> Node2D:
 	return null
 
 ## 通知SignalBus fruit已生成
-func _notify_fruit_generated(position: Vector2):
+func _notify_fruit_generated(fruit_position: Vector2):
 	# 查找SignalBus节点并发出信号
 	var signalbus = get_tree().get_first_node_in_group("signalbus")
 	if not signalbus:
@@ -943,7 +931,7 @@ func _notify_fruit_generated(position: Vector2):
 			signalbus = main_scene.find_child("Signalbus", true, false)
 	
 	if signalbus and signalbus.has_signal("fruit_generated"):
-		signalbus.fruit_generated.emit(position)
-		print("🍎 [Fruits] 已通知SignalBus fruit生成: ", position)
+		signalbus.fruit_generated.emit(fruit_position)
+		print("🍎 [Fruits] 已通知SignalBus fruit生成: ", fruit_position)
 	else:
 		print("⚠️ [Fruits] 未找到SignalBus或fruit_generated信号")

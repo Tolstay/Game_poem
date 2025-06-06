@@ -8,9 +8,9 @@ signal fade_in_now
 signal disable_pickoff_interaction
 signal able_pickoff_interaction
 
-# 风抖动信号
+# 风抖动信号（由wind_manager连接和使用，在静止超时时触发）
 signal wind_shake_start(duration: float, intensity: float, frequency: float, horizontal_bias: float, randomness: float)
-signal wind_shake_stop
+signal wind_shake_stop  # 风抖动停止信号
 
 # Fruit坐标管理
 signal fruit_generated(position: Vector2)
@@ -177,7 +177,7 @@ func get_current_petal_text() -> String:
 	else:
 		base_text = "no "
 	
-	repeat_count = (petal_pick_count / 2) + 1
+	repeat_count = int(petal_pick_count / 2) + 1
 	
 	var result = ""
 	for i in range(repeat_count):
@@ -366,7 +366,6 @@ func _move_camera_down(camera: Camera2D, offset: float):
 ## 检测剩余petal数量
 func _check_remaining_petals() -> int:
 	var remaining_count = 0
-	var main_scene = get_tree().current_scene
 	
 	# 通过group系统统计剩余的petal
 	var petal_group_prefix = "petal_position_"
@@ -470,18 +469,18 @@ func _set_movement_gameover(state: bool):
 # ==================== Fruit坐标管理 ====================
 
 ## 当fruit生成时调用
-func _on_fruit_generated(position: Vector2):
-	fruit_coordinates.append(position)
-	print("🍎 [SignalBus] Fruit生成于: ", position, " 总数: ", fruit_coordinates.size())
+func _on_fruit_generated(fruit_position: Vector2):
+	fruit_coordinates.append(fruit_position)
+	print("🍎 [SignalBus] Fruit生成于: ", fruit_position, " 总数: ", fruit_coordinates.size())
 	_update_movement_bounds()
 
 ## 当fruit被摘除时调用
-func _on_fruit_removed(position: Vector2):
+func _on_fruit_removed(fruit_position: Vector2):
 	# 查找并移除最接近的坐标（允许小误差）
 	for i in range(fruit_coordinates.size()):
-		if fruit_coordinates[i].distance_to(position) < 10.0:  # 10像素误差范围
+		if fruit_coordinates[i].distance_to(fruit_position) < 10.0:  # 10像素误差范围
 			fruit_coordinates.remove_at(i)
-			print("🍎 [SignalBus] Fruit移除于: ", position, " 剩余fruit: ", fruit_coordinates.size())
+			print("🍎 [SignalBus] Fruit移除于: ", fruit_position, " 剩余fruit: ", fruit_coordinates.size())
 			_update_movement_bounds()
 			break
 
@@ -538,12 +537,12 @@ func _update_movement_bounds():
 	print("📏 [SignalBus] Movement边界更新: ", bounds, " (包含", all_coordinates.size(), "个坐标点)")
 
 ## 手动添加fruit坐标（供调试使用）
-func add_fruit_coordinate(position: Vector2):
-	fruit_generated.emit(position)
+func add_fruit_coordinate(fruit_position: Vector2):
+	fruit_generated.emit(fruit_position)
 
 ## 手动移除fruit坐标（供调试使用）
-func remove_fruit_coordinate(position: Vector2):
-	fruit_removed.emit(position)
+func remove_fruit_coordinate(fruit_position: Vector2):
+	fruit_removed.emit(fruit_position)
 
 ## 获取当前所有fruit坐标（供外部调用）
 func get_fruit_coordinates() -> Array[Vector2]:
@@ -567,10 +566,10 @@ func _add_heart_coordinate():
 func _find_heart_position() -> Vector2:
 	# 方法1: 通过First_Point查找
 	var main_scene = get_tree().current_scene
-	var first_point = main_scene.find_child("First_Point", true, false)
-	if first_point:
-		print("❤️ [SignalBus] 通过First_Point找到Heart位置: ", first_point.global_position)
-		return first_point.global_position
+	var first_point_node = main_scene.find_child("First_Point", true, false)
+	if first_point_node:
+		print("❤️ [SignalBus] 通过First_Point找到Heart位置: ", first_point_node.global_position)
+		return first_point_node.global_position
 	
 	# 方法2: 通过Heart节点直接查找
 	var heart_node = main_scene.find_child("Heart", true, false)
@@ -581,10 +580,10 @@ func _find_heart_position() -> Vector2:
 	# 方法3: 在Fruits节点下查找First_Point
 	var fruits_node = main_scene.find_child("Fruits", true, false)
 	if fruits_node:
-		first_point = fruits_node.get_node_or_null("First_Point")
-		if first_point:
-			print("❤️ [SignalBus] 在Fruits下找到First_Point: ", first_point.global_position)
-			return first_point.global_position
+		first_point_node = fruits_node.get_node_or_null("First_Point")
+		if first_point_node:
+			print("❤️ [SignalBus] 在Fruits下找到First_Point: ", first_point_node.global_position)
+			return first_point_node.global_position
 	
 	print("⚠️ [SignalBus] 所有方法都未找到Heart位置")
 	return Vector2.ZERO

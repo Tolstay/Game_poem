@@ -5,7 +5,6 @@ extends ColorRect
 
 # Tween动画管理器
 var fade_tween: Tween
-var colora 
 @onready var windrises: AudioStreamPlayer = %windrises
 
 signal fade_in_completed
@@ -36,7 +35,7 @@ func _on_main_instantiation_compeleted() -> void:
 	_fade_curtain(0.0)
 	
 	## 执行淡入淡出动画
-func _fade_curtain(colora):
+func _fade_curtain(target_color):
 	# 如果已有tween在运行，先停止
 	if fade_tween:
 		fade_tween.kill()
@@ -44,11 +43,11 @@ func _fade_curtain(colora):
 	# 创建新的tween
 	fade_tween = create_tween()
 	
-	if modulate.a == colora:
+	if modulate.a == target_color:
 		return
 	
 	# 在2秒内将不透明度提升至255（即modulate.a = 1.0）
-	fade_tween.tween_property(self, "modulate:a", colora, 2.0)
+	fade_tween.tween_property(self, "modulate:a", target_color, 2.0)
 	
 	# 可选：设置缓动类型让动画更平滑
 	fade_tween.set_ease(Tween.EASE_IN_OUT)

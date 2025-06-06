@@ -168,7 +168,7 @@ func _reset_all_positions():
 			if node is Line2D:
 				node.position = original_pos
 
-func _process(delta):
+func _process(_delta):
 	if is_wind_active:
 		_update_wind_effect()
 
@@ -200,8 +200,6 @@ func _update_wind_effect():
 func _apply_wind_to_node(node_data: Dictionary, elapsed_time: float):
 	var node = node_data.node
 	var original_pos = node_data.original_pos
-	var node_type = node_data.type
-	
 	if not is_instance_valid(node) or current_wind_intensity <= 0:
 		return
 	

@@ -406,7 +406,7 @@ func _calculate_average_tangent_direction(curve_points: Array[Vector2]) -> Vecto
 		return Vector2.ZERO
 
 ## 基于trunk方向生成branch方向
-func _generate_branch_direction(trunk_direction: Vector2, fruits_controller) -> Vector2:
+func _generate_branch_direction(trunk_direction: Vector2, _fruits_controller) -> Vector2:
 	var trunk_angle = trunk_direction.angle()
 	
 	# 随机选择左转或右转
@@ -447,7 +447,7 @@ func _create_complete_branch(start_point_index: int, start_pos: Vector2, end_pos
 	_record_branch_line(start_pos, end_pos)
 	
 	# 创建终点branch_point
-	var end_point_index = fruits_controller.create_branch_endpoint(end_pos, direction)
+	fruits_controller.create_branch_endpoint(end_pos, direction)
 
 ## 供fruits调用的新接口方法 ====================
 

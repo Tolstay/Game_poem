@@ -71,7 +71,7 @@ func _input(_event):
 		_execute_coordinated_generation()
 
 ## 执行协调生成（trunk组 + branch装饰组）
-func _execute_coordinated_generation(trunk_count: int = 0, branch_decoration_count: int = 0):
+func _execute_coordinated_generation(_trunk_count: int = 0, _branch_decoration_count: int = 0):
 	if not fruits_node:
 		return
 	
@@ -174,9 +174,9 @@ func _execute_step_by_step_generation(trunk_count: int, branch_count: int, max_s
 					branch_generated += 1
 					step_had_success = true
 					
-					# 查找新生成的END_BRANCH点并生成装饰
-					var new_end_branch_points = _get_new_end_branch_points(initial_end_branch_points)
-					_generate_decorations_at_points(new_end_branch_points)
+								# 查找新生成的END_BRANCH点并生成装饰
+			var new_end_branch_points = _get_new_end_branch_points(initial_end_branch_points)
+			_generate_decorations_at_points(new_end_branch_points)
 		
 		# 如果本步骤没有任何成功，并且已经完成了所需数量，可以提前结束
 		if not step_had_success and trunk_generated >= trunk_count and branch_generated >= branch_count:
@@ -465,7 +465,8 @@ func _clean_invalid_petal_references():
 	# 使用group系统，这个方法现在主要用于调试
 	for i in range(petal_count):
 		var group_name = PETAL_GROUP_PREFIX + str(i)
-		var petals_at_position = get_tree().get_nodes_in_group(group_name)
+		var _petals_at_position = get_tree().get_nodes_in_group(group_name)
+		# 这个方法主要用于调试，实际清理在_is_position_empty中进行
 
 func _on_signalbus_fruit_picked_now() -> void:
 	# 调试：显示当前状态
@@ -484,6 +485,12 @@ func _create_wind_manager():
 	var wind_manager_script = preload("res://Script/wind_manager.gd")
 	wind_manager = Node2D.new()
 	wind_manager.set_script(wind_manager_script)
+	wind_manager.name = "WindManager"
+	
+	# 添加到场景
+	add_child(wind_manager)
+	
+	print("WindManager已创建并添加到main场景")
 
 ## 设置游戏结束状态（供外部调用）
 func set_gameover(state: bool):
@@ -494,9 +501,3 @@ func set_gameover(state: bool):
 ## 获取游戏结束状态（供外部调用）
 func is_gameover() -> bool:
 	return gameover
-	wind_manager.name = "WindManager"
-	
-	# 添加到场景
-	add_child(wind_manager)
-	
-	print("WindManager已创建并添加到main场景")

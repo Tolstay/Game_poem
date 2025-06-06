@@ -66,15 +66,15 @@ func _ready():
 	
 	# 查找fruit音频播放器
 	var fruit_possible_names = ["fruit_pickoff", "AudioStreamPlayer", "fruit_audio"]
-	for name in fruit_possible_names:
-		fruit_pickoff_audio = get_node_or_null(name)
+	for audio_name in fruit_possible_names:
+		fruit_pickoff_audio = get_node_or_null(audio_name)
 		if fruit_pickoff_audio:
 			break
 	
 	# 查找petal音频播放器
 	var petal_possible_names = ["petal_pickoff", "petal_audio"]
-	for name in petal_possible_names:
-		petal_pickoff_audio = get_node_or_null(name)
+	for audio_name in petal_possible_names:
+		petal_pickoff_audio = get_node_or_null(audio_name)
 		if petal_pickoff_audio:
 			break
 	
@@ -580,7 +580,7 @@ func _force_stop_wind_shake():
 		sprite_node.position = original_sprite_position
 
 ## 更新风抖动
-func _update_wind_shake(delta: float):
+func _update_wind_shake(_delta: float):
 	if not sprite_node:
 		return
 	
@@ -657,7 +657,7 @@ func _notify_bloodcut_fruit_removed():
 		print("🍎 [DEBUG] 未找到对应位置的bloodcut")
 
 ## 查找指定位置的bloodcut
-func _find_bloodcut_at_position(position: Vector2) -> Node:
+func _find_bloodcut_at_position(target_position: Vector2) -> Node:
 	# 查找Fruitlayer或场景中的所有bloodcut
 	var search_nodes: Array[Node] = []
 	
@@ -671,7 +671,7 @@ func _find_bloodcut_at_position(position: Vector2) -> Node:
 	
 	# 在指定节点中递归查找bloodcut
 	for search_node in search_nodes:
-		var found_bloodcut = _find_bloodcut_recursive(search_node, position)
+		var found_bloodcut = _find_bloodcut_recursive(search_node, target_position)
 		if found_bloodcut:
 			return found_bloodcut
 	
@@ -710,7 +710,7 @@ func _is_bloodcut_node(node: Node) -> bool:
 	return false
 
 ## 通知SignalBus fruit已被移除
-func _notify_signalbus_fruit_removed(position: Vector2):
+func _notify_signalbus_fruit_removed(fruit_position: Vector2):
 	# 只有fruit类型才通知SignalBus
 	if object_type != "Fruit":
 		return
@@ -718,7 +718,7 @@ func _notify_signalbus_fruit_removed(position: Vector2):
 	# 查找SignalBus节点并发出信号
 	var signalbus = get_tree().get_first_node_in_group("signalbus")
 	if signalbus and signalbus.has_signal("fruit_removed"):
-		signalbus.fruit_removed.emit(position)
-		print("🍎 [Pickoff] 已通知SignalBus fruit被移除: ", position)
+		signalbus.fruit_removed.emit(fruit_position)
+		print("🍎 [Pickoff] 已通知SignalBus fruit被移除: ", fruit_position)
 	else:
 		print("⚠️ [Pickoff] 未找到SignalBus或fruit_removed信号")
