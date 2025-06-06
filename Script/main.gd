@@ -4,6 +4,7 @@ extends Node2D
 ## 负责场景初始化、petal圆形实例化和生成交互控制
 
 @onready var signalbus: Node = %Signalbus
+@onready var globalbgm: AudioStreamPlayer = %globalbgm
 
 # 鼠标静止检测信号
 signal mouse_stopped_moving
@@ -249,6 +250,8 @@ func _ready():
 	
 	# 初始化鼠标位置
 	last_mouse_position = get_global_mouse_position()
+	
+	globalbgm.play()
 
 func _process(delta):
 	_update_mouse_detection(delta)
