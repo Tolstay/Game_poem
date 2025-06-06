@@ -298,6 +298,52 @@ func test_gameover_toggle():
 	set_global_gameover(not current_state)
 	print("🧪 [SignalBus] 游戏结束状态已切换为: ", not current_state)
 
+## 开始相机下落效果（与petal相同速度）
+func _start_camera_fall():
+	var camera_node = _find_camera_node()
+	if not camera_node:
+		print("⚠️ [SignalBus] 未找到Camera2D节点")
+		return
+	
+	print("📹 [SignalBus] 开始相机下落效果")
+	
+	# 创建Tween控制相机下落
+	var camera_tween = create_tween()
+	camera_tween.set_loops()  # 无限循环下落
+	
+	# 以petal相同的速度向下移动（15.0像素/秒）
+	var fall_speed = 15.0  # 与pickoff脚本中petal的掉落速度一致
+	var fall_distance = 1000.0  # 每次下落的距离
+	var fall_duration = fall_distance / fall_speed  # 计算下落时间
+	
+	# 开始无限下落动画
+	camera_tween.tween_method(_move_camera_down.bind(camera_node), 0.0, fall_distance, fall_duration)
+
+## 查找Camera2D节点
+func _find_camera_node() -> Camera2D:
+	var main_scene = get_tree().current_scene
+	var camera_node = null
+	
+	# 查找路径：SubViewportContainer/SubViewport/Movement/Camera2D
+	var subviewport_container = main_scene.get_node_or_null("SubViewportContainer")
+	if subviewport_container:
+		var subviewport = subviewport_container.get_node_or_null("SubViewport")
+		if subviewport:
+			var movement = subviewport.get_node_or_null("Movement")
+			if movement:
+				camera_node = movement.get_node_or_null("Camera2D")
+	
+	# 如果找不到，尝试直接查找
+	if not camera_node:
+		camera_node = main_scene.find_child("Camera2D", true, false)
+	
+	return camera_node
+
+## 移动相机向下（供Tween调用）
+func _move_camera_down(camera: Camera2D, offset: float):
+	if camera and is_instance_valid(camera):
+		camera.global_position.y += offset
+
 ## 检测剩余petal数量
 func _check_remaining_petals() -> int:
 	var remaining_count = 0

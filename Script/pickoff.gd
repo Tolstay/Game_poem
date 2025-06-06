@@ -452,7 +452,7 @@ func _start_falling_animation():
 	# 缩放动画 - 缓慢缩小到消失
 	var scale_tween = create_tween()
 	scale_tween.tween_property(sprite_node, "scale", 
-		original_sprite_scale * 0.1, 8.0)  # 8秒内缩小到10%
+		original_sprite_scale * 0.1, 15.0)  # 8秒内缩小到10%
 	scale_tween.set_ease(Tween.EASE_OUT)
 	scale_tween.set_trans(Tween.TRANS_QUAD)
 	

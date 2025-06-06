@@ -25,8 +25,8 @@ var gameover: bool = false  # 游戏结束状态，禁用移动跟随
 func _physics_process(delta):
 	# 如果游戏结束，禁用所有移动
 	if gameover:
-		# 应用减速使角色停止
-		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+		# 以petal相同的速度向下移动（因为相机是子节点，会一起移动）
+		velocity = Vector2(0, 15.0)  # 15.0像素/秒向下，与petal掉落速度一致
 		move_and_slide()
 		return
 	
