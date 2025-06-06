@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://bhmo04jnuahb"]
+
+[ext_resource type="Texture2D" uid="uid://dmjcdosg8slqm" path="res://Asset/bloodcut.png" id="1_tfvl3"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_c1rri"]
+atlas = ExtResource("1_tfvl3")
+region = Rect2(5, 1, 3, 3)
+
+[node name="blooddrop" type="Sprite2D"]
+texture = SubResource("AtlasTexture_c1rri")

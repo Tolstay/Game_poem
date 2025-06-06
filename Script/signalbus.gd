@@ -74,7 +74,6 @@ func _on_fruit_picked():
 
 func _on_still_threshold_timeout() -> void:
 	disable_pickoff_interaction.emit()  # 发出禁用pickoff交互信号,需要手动连接
-	print("禁用交互，起风")
 	fading = true
 	windrises_timer.start()
 

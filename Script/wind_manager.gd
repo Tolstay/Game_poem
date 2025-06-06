@@ -34,18 +34,9 @@ func _ready():
 		if signalbus.has_signal("wind_shake_start"):
 			signalbus.wind_shake_start.connect(_on_wind_shake_start)
 		# 注意：不再连接wind_shake_stop信号，完全依赖duration参数控制
-		print("WindManager: SignalBus连接成功")
-	else:
-		print("WindManager: 警告 - 未找到SignalBus")
 	
 	# 查找Fruits控制器
 	fruits_controller = _find_fruits_controller()
-	if fruits_controller:
-		print("WindManager: 找到Fruits控制器: ", fruits_controller.name, " 路径: ", fruits_controller.get_path())
-	else:
-		print("WindManager: 警告 - 未找到Fruits控制器")
-	
-	print("WindManager初始化完成")
 
 ## 查找FruitLayer控制器
 func _find_fruits_controller() -> Node2D:
@@ -61,23 +52,14 @@ func _find_fruits_controller() -> Node2D:
 		"fruitlayer"     # 直接路径（小写）
 	]
 	
-	print("WindManager: 开始查找FruitLayer控制器...")
 	for path in possible_paths:
-		print("WindManager: 尝试路径: ", path)
 		var node = get_node_or_null(path)
 		if node:
-			print("WindManager: 在路径 '", path, "' 找到FruitLayer控制器")
 			return node
-		else:
-			print("WindManager: 路径 '", path, "' 未找到节点")
-	
-	print("WindManager: 所有路径都未找到FruitLayer控制器")
 	return null
 
 ## 响应风抖动开始信号
 func _on_wind_shake_start(duration: float, intensity: float, frequency: float, horizontal_bias: float, randomness: float):
-	print("WindManager: 接收到风抖动开始信号")
-	
 	# 更新参数
 	wind_duration = duration
 	wind_intensity = intensity
@@ -97,29 +79,12 @@ func _on_wind_shake_start(duration: float, intensity: float, frequency: float, h
 func _collect_shakeable_nodes():
 	shakeable_nodes.clear()
 	
-	print("WindManager: 开始收集可抖动节点（仅树的Line2D节点）...")
-	
 	# 收集trunk和branch的Line2D节点
 	if fruits_controller:
-		print("WindManager: 从FruitLayer控制器收集树的Line2D节点...")
-		var tree_count_before = shakeable_nodes.size()
 		_collect_line2d_from_node(fruits_controller, "Tree")
-		var tree_count_after = shakeable_nodes.size()
-		print("WindManager: 从树中收集到 ", tree_count_after - tree_count_before, " 个Line2D节点")
-	else:
-		print("WindManager: 跳过树节点收集（未找到FruitLayer控制器）")
-	
-	print("WindManager: 总共收集到 ", shakeable_nodes.size(), " 个可抖动节点")
-	
-	# 打印所有收集到的节点信息
-	for i in range(shakeable_nodes.size()):
-		var node_data = shakeable_nodes[i]
-		print("  节点 ", i, ": ", node_data.type, " - ", node_data.node.name, " (", node_data.node.get_path(), ")")
 
 ## 从指定节点递归收集Line2D节点（专门用于branch和trunk）
 func _collect_line2d_from_node(node: Node, node_type: String):
-	print("WindManager: 检查节点: ", node.name, " (", node.get_class(), ") 路径: ", node.get_path())
-	
 	# 只收集Line2D节点
 	if node is Line2D:
 		var line = node as Line2D
@@ -128,7 +93,6 @@ func _collect_line2d_from_node(node: Node, node_type: String):
 			"original_pos": line.position,
 			"type": node_type
 		})
-		print("WindManager: ✓ 添加Line2D节点: ", node.name, " 类型: ", node_type)
 	
 	# 递归检查子节点
 	for child in node.get_children():
@@ -141,7 +105,6 @@ func _start_wind_effect():
 	if is_wind_active:
 		_force_stop_wind_effect()
 	
-	print("WindManager: 开始风抖动效果，节点数量: ", shakeable_nodes.size())
 	is_wind_active = true
 	is_fading_out = false
 	wind_start_time = Time.get_ticks_msec() / 1000.0
@@ -163,7 +126,6 @@ func _start_fade_out(fade_duration: float):
 		return
 	
 	is_fading_out = true
-	print("WindManager: 开始渐出，持续时间: ", fade_duration)
 	
 	# 创建渐出Tween
 	if wind_tween:
@@ -222,7 +184,6 @@ func _update_wind_effect():
 	if wind_duration > 0 and elapsed_time >= fade_out_start_time and current_wind_intensity > 0:
 		var remaining_time = wind_duration - elapsed_time
 		if remaining_time <= wind_fade_out_time and not _is_fading_out():
-			print("WindManager: 开始渐出，剩余时间: ", remaining_time)
 			_start_fade_out(remaining_time)
 			return
 	
