@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=21 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
 [ext_resource type="Script" uid="uid://23uc0ufxq2kx" path="res://Script/main.gd" id="1_k2005"]
@@ -11,7 +11,6 @@
 [ext_resource type="Texture2D" uid="uid://b664u2154hil1" path="res://Asset/heart1.png" id="8_01llu"]
 [ext_resource type="Script" uid="uid://8he5irjtsrxn" path="res://Script/curtain.gd" id="10_iow1c"]
 [ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Script/signalbus.gd" id="10_xpfmo"]
-[ext_resource type="Script" uid="uid://lobfkynfo4px" path="res://Script/typewriter_effect.gd" id="11_vl782"]
 [ext_resource type="FontFile" uid="uid://5s6klcknipcm" path="res://fonts/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf" id="11_wlf6e"]
 [ext_resource type="AudioStream" uid="uid://c0qyan1x2ndtk" path="res://Sound/windrises.wav" id="12_01llu"]
 [ext_resource type="AudioStream" uid="uid://xd6njoxuguf8" path="res://Sound/night-ambience-17064.mp3" id="13_alkcg"]
@@ -111,7 +110,6 @@ offset_bottom = 23.0
 theme_override_colors/font_color = Color(1, 0, 1, 1)
 theme_override_fonts/font = ExtResource("11_wlf6e")
 theme_override_font_sizes/font_size = 10
-script = ExtResource("11_vl782")
 
 [node name="Signalbus" type="Node" parent="."]
 unique_name_in_owner = true

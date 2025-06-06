@@ -245,28 +245,46 @@ func _generate_decorations_at_points(point_indices: Array[int]):
 # ==================== 现有代码保持不变 ====================
 
 func _ready():
+	print("🚀 [Main] 游戏开始初始化...")
+	
 	# 首先查找SubViewport相关节点
 	_find_subviewport_structure()
+	print("📍 [Main] SubViewport查找完成 - sub_viewport: ", sub_viewport != null, " fruits_node: ", fruits_node != null)
 	
 	# 查找First_Point（支持SubViewport结构）
 	_find_first_point()
+	print("🎯 [Main] First_Point查找完成: ", first_point != null)
 	
 	# 创建并初始化WindManager
 	_create_wind_manager()
+	print("💨 [Main] WindManager创建完成")
 	
 	# 如果启用自动生成，初始化petal系统
 	if petal_auto_generate and first_point:
+		print("🌸 [Main] 开始初始化petal系统...")
 		_initialize_petal_system()
+	elif not first_point:
+		print("❌ [Main] 错误：未找到First_Point，跳过petal初始化")
 	
 	# 连接signalbus信号
 	if signalbus:
+		print("📡 [Main] 连接signalbus信号...")
 		mouse_stopped_moving.connect(signalbus._on_mouse_stopped_moving)
 		mouse_started_moving.connect(signalbus._on_mouse_started_moving)
+	else:
+		print("⚠️ [Main] 警告：未找到signalbus")
 	
 	# 初始化鼠标位置
 	last_mouse_position = get_global_mouse_position()
+	print("🖱️ [Main] 鼠标位置初始化完成")
 	
-	globalbgm.play()
+	if globalbgm:
+		globalbgm.play()
+		print("🎵 [Main] 背景音乐开始播放")
+	else:
+		print("⚠️ [Main] 警告：未找到背景音乐")
+	
+	print("✅ [Main] 游戏初始化完成！")
 
 func _process(delta):
 	# 如果游戏结束，禁用鼠标检测
