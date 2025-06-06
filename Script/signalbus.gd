@@ -135,13 +135,14 @@ func on_petal_picked():
 	_update_info_text(pick_number)
 	
 	if remaining_petals == 0:
+		set_global_gameover(true)
 		_start_backspace_effect()
 		await get_tree().create_timer(3.0).timeout
 		_start_typing_effect("You've made your choice")
 		ending.play()
-		await get_tree().create_timer(3.0).timeout
+		await get_tree().create_timer(5.0).timeout
 		_start_backspace_effect()
-		await get_tree().create_timer(1.5).timeout
+		await get_tree().create_timer(2.5).timeout
 		info.add_theme_font_size_override("font_size", 20)
 		_start_typing_effect("Game Over")
 
@@ -285,6 +286,18 @@ func test_typewriter_effect():
 	print("🧪 [SignalBus] 测试打字机效果")
 	_start_typing_effect("测试打字机效果")
 
+## 测试游戏结束状态切换（供调试使用）
+func test_gameover_toggle():
+	var main_scene = get_tree().current_scene
+	var current_state = false
+	
+	if main_scene and main_scene.has_method("is_gameover"):
+		current_state = main_scene.is_gameover()
+	
+	# 切换状态
+	set_global_gameover(not current_state)
+	print("🧪 [SignalBus] 游戏结束状态已切换为: ", not current_state)
+
 ## 检测剩余petal数量
 func _check_remaining_petals() -> int:
 	var remaining_count = 0
@@ -319,3 +332,72 @@ func get_remaining_petals_count() -> int:
 ## 检查是否所有petal都已被摘除
 func are_all_petals_picked() -> bool:
 	return _check_remaining_petals() == 0
+
+## 设置全局游戏结束状态
+func set_global_gameover(state: bool):
+	print("🎮 [SignalBus] 设置全局游戏结束状态: ", state)
+	
+	# 设置主脚本的gameover状态
+	var main_scene = get_tree().current_scene
+	if main_scene and main_scene.has_method("set_gameover"):
+		main_scene.set_gameover(state)
+	
+	# 设置所有pickoff脚本的gameover状态
+	_set_all_pickoff_gameover(state)
+	
+	# 设置movement脚本的gameover状态
+	_set_movement_gameover(state)
+
+## 设置所有pickoff脚本的gameover状态
+func _set_all_pickoff_gameover(state: bool):
+	# 获取所有fruit和petal的pickoff节点
+	var all_pickoff_nodes = []
+	
+	# 查找所有petal的pickoff节点
+	for i in range(20):  # 假设最多20个位置
+		var group_name = "petal_position_" + str(i)
+		var petals_at_position = get_tree().get_nodes_in_group(group_name)
+		
+		for petal in petals_at_position:
+			if is_instance_valid(petal) and petal.is_inside_tree():
+				var pickoff_node = petal.find_child("pickoff", true, false)
+				if pickoff_node and pickoff_node.has_method("set_gameover"):
+					all_pickoff_nodes.append(pickoff_node)
+	
+	# 查找所有fruit的pickoff节点
+	var fruits_group = get_tree().get_nodes_in_group("fruits")
+	for fruit in fruits_group:
+		if is_instance_valid(fruit) and fruit.is_inside_tree():
+			var pickoff_node = fruit.find_child("pickoff", true, false)
+			if pickoff_node and pickoff_node.has_method("set_gameover"):
+				all_pickoff_nodes.append(pickoff_node)
+	
+	# 设置所有找到的pickoff节点的gameover状态
+	for pickoff_node in all_pickoff_nodes:
+		pickoff_node.set_gameover(state)
+	
+	print("🎮 [SignalBus] 已设置 ", all_pickoff_nodes.size(), " 个pickoff节点的gameover状态")
+
+## 设置movement脚本的gameover状态
+func _set_movement_gameover(state: bool):
+	# 在SubViewport结构中查找Movement节点
+	var main_scene = get_tree().current_scene
+	var movement_node = null
+	
+	# 查找路径：SubViewportContainer/SubViewport/Movement
+	var subviewport_container = main_scene.get_node_or_null("SubViewportContainer")
+	if subviewport_container:
+		var subviewport = subviewport_container.get_node_or_null("SubViewport")
+		if subviewport:
+			movement_node = subviewport.get_node_or_null("Movement")
+	
+	# 如果找不到，尝试直接查找
+	if not movement_node:
+		movement_node = main_scene.find_child("Movement", true, false)
+	
+	# 设置movement的gameover状态
+	if movement_node and movement_node.has_method("set_gameover"):
+		movement_node.set_gameover(state)
+		print("🎮 [SignalBus] 已设置Movement节点的gameover状态")
+	else:
+		print("⚠️ [SignalBus] 未找到Movement节点")

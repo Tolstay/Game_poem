@@ -20,6 +20,7 @@ var petal_pickoff_audio: AudioStreamPlayer
 # 状态控制
 var is_picked: bool = false
 var is_interaction_disabled: bool = false  # 新增：控制交互是否被禁用
+var gameover: bool = false  # 游戏结束状态，禁用所有交互
 
 # 长按相关变量
 @export var hold_time_required: float = 0.8  # 长按所需时间
@@ -230,8 +231,8 @@ func _determine_object_type(node_name: String) -> String:
 		return "PickableObject"
 
 func _input(event):
-	if is_picked or is_interaction_disabled:  # 修改：同时检查是否被禁用
-		return  # 如果已经被摘取或交互被禁用，不再处理输入
+	if is_picked or is_interaction_disabled or gameover:  # 修改：检查gameover状态
+		return  # 如果已经被摘取、交互被禁用或游戏结束，不再处理输入
 	
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -283,7 +284,7 @@ func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 		return false
 
 func _process(delta):
-	if is_mouse_down and not is_picked and not is_interaction_disabled:
+	if is_mouse_down and not is_picked and not is_interaction_disabled and not gameover:
 		mouse_down_timer += delta
 		
 		# 开始抖动动画
@@ -294,7 +295,7 @@ func _process(delta):
 		if mouse_down_timer >= hold_time_required:
 			_complete_hold_interaction()
 	
-	# 更新风抖动
+	# 更新风抖动（风抖动不受gameover影响）
 	if is_wind_shaking:
 		_update_wind_shake(delta)
 
@@ -501,6 +502,18 @@ func is_object_picked() -> bool:
 func debug_emit_fruit_signal():
 	if object_type == "Fruit":
 		fruit_picked.emit()
+
+## 设置游戏结束状态（供外部调用）
+func set_gameover(state: bool):
+	gameover = state
+	if gameover:
+		# 游戏结束时取消当前的交互
+		_cancel_hold_interaction()
+		print("🎮 [Pickoff] 游戏结束，所有交互已禁用")
+
+## 获取游戏结束状态（供外部调用）
+func is_gameover() -> bool:
+	return gameover
 
 # ==================== 风抖动效果 ====================
 

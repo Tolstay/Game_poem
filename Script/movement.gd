@@ -18,8 +18,18 @@ extends CharacterBody2D
 var input_vector: Vector2 = Vector2.ZERO
 var target_position: Vector2 = Vector2.ZERO
 
+# 游戏状态控制
+var gameover: bool = false  # 游戏结束状态，禁用移动跟随
+
 
 func _physics_process(delta):
+	# 如果游戏结束，禁用所有移动
+	if gameover:
+		# 应用减速使角色停止
+		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+		move_and_slide()
+		return
+	
 	# 获取输入
 	_handle_input()
 	
@@ -32,6 +42,10 @@ func _physics_process(delta):
 ## 处理输入
 func _handle_input():
 	input_vector = Vector2.ZERO
+	
+	# 如果游戏结束，不处理任何输入
+	if gameover:
+		return
 	
 	# 鼠标跟随逻辑
 	if mouse_follow_enabled:
@@ -84,3 +98,13 @@ func _get_debug_info() -> String:
 	var mouse_world = _get_mouse_world_position()
 	var distance = global_position.distance_to(mouse_world)
 	return "Mouse: %s, Player: %s, Distance: %.1f" % [mouse_world, global_position, distance]
+
+## 设置游戏结束状态（供外部调用）
+func set_gameover(state: bool):
+	gameover = state
+	if gameover:
+		print("🎮 [Movement] 游戏结束，移动跟随已禁用")
+
+## 获取游戏结束状态（供外部调用）
+func is_gameover() -> bool:
+	return gameover

@@ -56,9 +56,16 @@ var last_mouse_position: Vector2
 var mouse_still_timer: float = 0.0
 var is_mouse_still: bool = false
 
+# 游戏状态控制
+var gameover: bool = false  # 游戏结束状态，禁用所有交互
+
 # ==================== 输入处理 ====================
 
 func _input(_event):
+	# 如果游戏结束，禁用所有输入处理
+	if gameover:
+		return
+		
 	# 响应generate输入映射（空格键：协调生成trunk和branch装饰）
 	if Input.is_action_just_pressed("generate"):
 		_execute_coordinated_generation()
@@ -262,7 +269,9 @@ func _ready():
 	globalbgm.play()
 
 func _process(delta):
-	_update_mouse_detection(delta)
+	# 如果游戏结束，禁用鼠标检测
+	if not gameover:
+		_update_mouse_detection(delta)
 
 ## 更新鼠标静止检测
 func _update_mouse_detection(delta: float):
@@ -457,6 +466,16 @@ func _create_wind_manager():
 	var wind_manager_script = preload("res://Script/wind_manager.gd")
 	wind_manager = Node2D.new()
 	wind_manager.set_script(wind_manager_script)
+
+## 设置游戏结束状态（供外部调用）
+func set_gameover(state: bool):
+	gameover = state
+	if gameover:
+		print("🎮 [Main] 游戏结束，输入和鼠标检测已禁用")
+
+## 获取游戏结束状态（供外部调用）
+func is_gameover() -> bool:
+	return gameover
 	wind_manager.name = "WindManager"
 	
 	# 添加到场景
