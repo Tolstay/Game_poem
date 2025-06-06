@@ -384,6 +384,8 @@ func _pick_object():
 	# 发出基础信号
 	if object_type == "Fruit":
 		fruit_picked.emit()
+		# 通知对应位置的bloodcut该fruit已被摘除
+		_notify_bloodcut_fruit_removed()
 	elif object_type == "Petal":
 		# 通知SignalBus花瓣被摘除
 		var signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
@@ -619,3 +621,74 @@ func _apply_wind_shake_animation(elapsed_time: float):
 	# 应用抖动偏移
 	var shake_offset = Vector2(final_shake_x, final_shake_y)
 	sprite_node.position = original_sprite_position + shake_offset
+
+# ==================== Bloodcut通知系统 ====================
+
+## 通知对应位置的bloodcut该fruit已被摘除
+func _notify_bloodcut_fruit_removed():
+	if not pickable_object:
+		return
+	
+	var fruit_position = pickable_object.global_position
+	print("🍎 [DEBUG] 通知bloodcut fruit被摘除，位置:", fruit_position)
+	
+	# 查找相同位置的bloodcut
+	var bloodcut = _find_bloodcut_at_position(fruit_position)
+	if bloodcut and bloodcut.has_method("on_fruit_removed"):
+		print("🍎 [DEBUG] 找到bloodcut，调用on_fruit_removed")
+		bloodcut.on_fruit_removed()
+	else:
+		print("🍎 [DEBUG] 未找到对应位置的bloodcut")
+
+## 查找指定位置的bloodcut
+func _find_bloodcut_at_position(position: Vector2) -> Node:
+	# 查找Fruitlayer或场景中的所有bloodcut
+	var search_nodes: Array[Node] = []
+	
+	# 优先在Fruitlayer中查找
+	var fruit_layer = get_tree().current_scene.find_child("Fruitlayer", true, false)
+	if fruit_layer:
+		search_nodes.append(fruit_layer)
+	else:
+		# 如果没有Fruitlayer，在整个场景中查找
+		search_nodes.append(get_tree().current_scene)
+	
+	# 在指定节点中递归查找bloodcut
+	for search_node in search_nodes:
+		var found_bloodcut = _find_bloodcut_recursive(search_node, position)
+		if found_bloodcut:
+			return found_bloodcut
+	
+	return null
+
+## 递归查找bloodcut
+func _find_bloodcut_recursive(node: Node, target_position: Vector2) -> Node:
+	# 检查当前节点是否是bloodcut（通过名称或类型判断）
+	if _is_bloodcut_node(node):
+		# 检查位置是否匹配（允许小的误差）
+		var node_position = node.global_position
+		var distance = node_position.distance_to(target_position)
+		print("🍎 [DEBUG] 检查bloodcut位置匹配 - bloodcut:", node_position, " fruit:", target_position, " distance:", distance)
+		if distance < 25.0:  # 增加到25像素误差范围
+			print("🍎 [DEBUG] 位置匹配成功!")
+			return node
+	
+	# 递归检查子节点
+	for child in node.get_children():
+		var found_bloodcut = _find_bloodcut_recursive(child, target_position)
+		if found_bloodcut:
+			return found_bloodcut
+	
+	return null
+
+## 判断节点是否是bloodcut
+func _is_bloodcut_node(node: Node) -> bool:
+	# 检查节点名称或场景文件路径
+	if "bloodcut" in node.name.to_lower():
+		return true
+	
+	# 检查场景文件路径
+	if node.scene_file_path and "bloodcut" in node.scene_file_path.to_lower():
+		return true
+	
+	return false

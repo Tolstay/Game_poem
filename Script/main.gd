@@ -232,6 +232,8 @@ func _generate_decorations_at_points(point_indices: Array[int]):
 		# 生成fruit
 		if fruits_node.has_method("generate_fruit_at_point"):
 			fruits_node.generate_fruit_at_point(point_index)
+		
+
 
 # ==================== 现有代码保持不变 ====================
 

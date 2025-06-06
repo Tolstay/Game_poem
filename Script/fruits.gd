@@ -79,6 +79,10 @@ var points_with_fruit: Array[bool] = []
 var points_with_trunkend: Array[bool] = []
 var trunkend_instances: Array[Node2D] = []  # 记录trunkend实例的引用
 
+# 记录已实例化bloodcut的节点
+var points_with_bloodcut: Array[bool] = []
+var bloodcut_instances: Array[Node2D] = []  # 记录bloodcut实例的引用
+
 # 折线点管理（为"G"键功能预留）
 var stored_bend_points: Array[Vector2] = []  # 存储的折线点，等待"G"键处理
 var bend_point_segments: Array[int] = []  # 记录每个折线点所属的线段索引
@@ -142,6 +146,8 @@ func _record_initial_points():
 			points_with_fruit.append(false)  # 初始化果实标记
 			points_with_trunkend.append(false)  # 初始化trunkend标记
 			trunkend_instances.append(null)  # 初始化trunkend实例引用
+			points_with_bloodcut.append(false)  # 初始化bloodcut标记
+			bloodcut_instances.append(null)  # 初始化bloodcut实例引用
 
 ## 添加新生成点（trunk点）
 func _add_new_point(pos: Vector2, direction: Vector2 = Vector2.ZERO, node: Node2D = null):
@@ -157,6 +163,8 @@ func _add_new_point(pos: Vector2, direction: Vector2 = Vector2.ZERO, node: Node2
 	points_with_fruit.append(false)  # 初始化果实标记
 	points_with_trunkend.append(false)  # 初始化trunkend标记
 	trunkend_instances.append(null)  # 初始化trunkend实例引用
+	points_with_bloodcut.append(false)  # 初始化bloodcut标记
+	bloodcut_instances.append(null)  # 初始化bloodcut实例引用
 	return new_point_index
 
 ## 添加新的branch_point到管理系统
@@ -173,6 +181,8 @@ func _add_branch_point(pos: Vector2, parent_segment_index: int, node: Node2D) ->
 	points_with_fruit.append(false)  # 初始化果实标记
 	points_with_trunkend.append(false)  # 初始化trunkend标记
 	trunkend_instances.append(null)  # 初始化trunkend实例引用
+	points_with_bloodcut.append(false)  # 初始化bloodcut标记
+	bloodcut_instances.append(null)  # 初始化bloodcut实例引用
 	
 	return branch_point_index
 
@@ -507,19 +517,9 @@ func _instantiate_fruits_at_endpoint_nodes():
 			if not has_trunkend:
 				_generate_trunkend_at_point(i)
 		
-		# 检查是否为END_BRANCH状态，生成bloodcut和fruit
+		# 检查是否为END_BRANCH状态，只生成fruit（bloodcut由main.gd统一调用generate_bloodcut_at_point生成）
 		elif point_status[i] == PointStatus.END_BRANCH and not points_with_fruit[i]:
-			# 先实例化bloodcut
-			var bloodcut = BLOODCUT_SCENE.instantiate()
-			bloodcut.global_position = point_positions[i]
-			
-			# 添加到Fruitlayer而不是当前节点
-			if fruit_layer:
-				fruit_layer.add_child(bloodcut)
-			else:
-				add_child(bloodcut)
-			
-			# 再实例化fruit（fruit会在视觉上遮蔽bloodcut）
+			# 实例化fruit
 			var fruit = FRUIT_SCENE.instantiate()
 			fruit.global_position = point_positions[i]
 			
@@ -647,6 +647,8 @@ func create_branch_endpoint(end_pos: Vector2, direction: Vector2) -> int:
 	point_types.append(PointType.BRANCH_POINT)
 	point_parent_segments.append(-1)  # 终点不属于任何trunk线段
 	points_with_fruit.append(false)  # 初始化果实标记
+	points_with_bloodcut.append(false)  # 初始化bloodcut标记
+	bloodcut_instances.append(null)  # 初始化bloodcut实例引用
 	
 	return end_point_index
 
@@ -743,12 +745,37 @@ func generate_bloodcut_at_point(point_index: int):
 	var point_position = point_positions[point_index]
 	var bloodcut = BLOODCUT_SCENE.instantiate()
 	bloodcut.global_position = point_position
+	print("🩸 [DEBUG] generate_bloodcut_at_point 生成bloodcut在位置 ", point_position, " visible初始状态: ", bloodcut.visible)
+	
+	# 设置bloodcut的point_index属性
+	if bloodcut.has_method("set_point_index"):
+		bloodcut.set_point_index(point_index)
 	
 	# 添加到Fruitlayer
 	if fruit_layer:
 		fruit_layer.add_child(bloodcut)
 	else:
 		add_child(bloodcut)
+	
+	print("🩸 [DEBUG] generate_bloodcut_at_point bloodcut添加到场景后 visible状态: ", bloodcut.visible)
+	
+	# 使用延迟调用确保bloodcut在生成帧的最后设置为不可见
+	call_deferred("_set_bloodcut_invisible", bloodcut)
+	
+	# 记录bloodcut实例
+	while points_with_bloodcut.size() <= point_index:
+		points_with_bloodcut.append(false)
+	while bloodcut_instances.size() <= point_index:
+		bloodcut_instances.append(null)
+	points_with_bloodcut[point_index] = true
+	bloodcut_instances[point_index] = bloodcut
+
+## 延迟设置bloodcut为不可见（确保在生成帧的最后执行）
+func _set_bloodcut_invisible(bloodcut: Node2D):
+	if bloodcut and is_instance_valid(bloodcut):
+		print("🩸 [DEBUG] _set_bloodcut_invisible 延迟设置bloodcut不可见 - 当前visible:", bloodcut.visible)
+		bloodcut.visible = false
+		print("🩸 [DEBUG] _set_bloodcut_invisible 设置完成 - 现在visible:", bloodcut.visible)
 
 ## 在指定点位生成fruit（供main调用）
 func generate_fruit_at_point(point_index: int):
@@ -875,3 +902,26 @@ func get_branch_count() -> int:
 		if point_status[i] == PointStatus.END_BRANCH:
 			branch_count += 1
 	return branch_count
+
+## 激活指定点的bloodcut（供外部调用）
+func activate_bloodcut_at_point(point_index: int):
+	if point_index >= bloodcut_instances.size():
+		return
+	
+	var bloodcut = bloodcut_instances[point_index]
+	if bloodcut and is_instance_valid(bloodcut):
+		bloodcut.visible = true
+		# 通知bloodcut开始生成血滴
+		if bloodcut.has_method("start_bleeding"):
+			bloodcut.start_bleeding()
+
+## 获取指定点的bloodcut实例（供外部调用）
+func get_bloodcut_at_point(point_index: int) -> Node2D:
+	if point_index >= bloodcut_instances.size():
+		return null
+	
+	var bloodcut = bloodcut_instances[point_index]
+	if bloodcut and is_instance_valid(bloodcut):
+		return bloodcut
+	
+	return null
