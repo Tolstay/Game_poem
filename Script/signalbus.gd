@@ -12,7 +12,16 @@ signal able_pickoff_interaction
 signal wind_shake_start(duration: float, intensity: float, frequency: float, horizontal_bias: float, randomness: float)
 signal wind_shake_stop
 
+# Fruit坐标管理
+signal fruit_generated(position: Vector2)
+signal fruit_removed(position: Vector2)
+signal movement_bounds_updated(bounds: Rect2)
+
 var fading:bool = false
+
+# Fruit坐标记录
+var fruit_coordinates: Array[Vector2] = []
+var heart_coordinate: Vector2 = Vector2.ZERO  # Heart坐标（永不移除）
 
 # 花瓣摘除计数系统
 var petal_pick_count: int = 0
@@ -37,6 +46,16 @@ var is_typing: bool = false
 var is_backspacing: bool = false
 
 func _ready():
+	# 添加到signalbus组
+	add_to_group("signalbus")
+	
+	# 连接fruit管理信号
+	fruit_generated.connect(_on_fruit_generated)
+	fruit_removed.connect(_on_fruit_removed)
+	
+	# 延迟添加heart坐标（等待场景完全加载）
+	call_deferred("_add_heart_coordinate")
+	
 	# 创建打字机计时器
 	_setup_typing_timer()
 	await get_tree().create_timer(0.5).timeout
@@ -447,3 +466,137 @@ func _set_movement_gameover(state: bool):
 		print("🎮 [SignalBus] 已设置Movement节点的gameover状态")
 	else:
 		print("⚠️ [SignalBus] 未找到Movement节点")
+
+# ==================== Fruit坐标管理 ====================
+
+## 当fruit生成时调用
+func _on_fruit_generated(position: Vector2):
+	fruit_coordinates.append(position)
+	print("🍎 [SignalBus] Fruit生成于: ", position, " 总数: ", fruit_coordinates.size())
+	_update_movement_bounds()
+
+## 当fruit被摘除时调用
+func _on_fruit_removed(position: Vector2):
+	# 查找并移除最接近的坐标（允许小误差）
+	for i in range(fruit_coordinates.size()):
+		if fruit_coordinates[i].distance_to(position) < 10.0:  # 10像素误差范围
+			fruit_coordinates.remove_at(i)
+			print("🍎 [SignalBus] Fruit移除于: ", position, " 剩余fruit: ", fruit_coordinates.size())
+			_update_movement_bounds()
+			break
+
+## 计算并更新movement边界
+func _update_movement_bounds():
+	# 准备所有坐标（包含heart和fruit）
+	var all_coordinates: Array[Vector2] = []
+	
+	# 添加heart坐标（如果存在）
+	if heart_coordinate != Vector2.ZERO:
+		all_coordinates.append(heart_coordinate)
+	
+	# 添加所有fruit坐标
+	all_coordinates.append_array(fruit_coordinates)
+	
+	if all_coordinates.size() == 0:
+		# 没有任何坐标时，设置一个极小的边界（实际上禁用移动）
+		var zero_bounds = Rect2(Vector2.ZERO, Vector2(1, 1))
+		movement_bounds_updated.emit(zero_bounds)
+		print("🚫 [SignalBus] 无任何坐标，movement被限制")
+		return
+	
+	# 找到四个方向的极值
+	var min_x = all_coordinates[0].x
+	var max_x = all_coordinates[0].x
+	var min_y = all_coordinates[0].y
+	var max_y = all_coordinates[0].y
+	
+	for coord in all_coordinates:
+		min_x = min(min_x, coord.x)
+		max_x = max(max_x, coord.x)
+		min_y = min(min_y, coord.y)
+		max_y = max(max_y, coord.y)
+	
+	# 创建边界矩形
+	var padding = 50.0
+	var bounds: Rect2
+	
+	# 如果只有heart（没有fruit），创建一个以heart为中心的合理区域
+	if all_coordinates.size() == 1 and heart_coordinate != Vector2.ZERO:
+		var heart_area_size = 200.0  # heart周围的活动区域大小
+		bounds = Rect2(
+			Vector2(heart_coordinate.x - heart_area_size/2, heart_coordinate.y - heart_area_size/2),
+			Vector2(heart_area_size, heart_area_size)
+		)
+	else:
+		# 多个坐标时，创建包围所有点的矩形（稍微扩大一点防止过于严格）
+		bounds = Rect2(
+			Vector2(min_x - padding, min_y - padding),
+			Vector2(max_x - min_x + padding * 2, max_y - min_y + padding * 2)
+		)
+	
+	movement_bounds_updated.emit(bounds)
+	print("📏 [SignalBus] Movement边界更新: ", bounds, " (包含", all_coordinates.size(), "个坐标点)")
+
+## 手动添加fruit坐标（供调试使用）
+func add_fruit_coordinate(position: Vector2):
+	fruit_generated.emit(position)
+
+## 手动移除fruit坐标（供调试使用）
+func remove_fruit_coordinate(position: Vector2):
+	fruit_removed.emit(position)
+
+## 获取当前所有fruit坐标（供外部调用）
+func get_fruit_coordinates() -> Array[Vector2]:
+	return fruit_coordinates.duplicate()
+
+## 获取fruit数量（供外部调用）
+func get_fruit_count() -> int:
+	return fruit_coordinates.size()
+
+## 添加heart坐标到管理系统
+func _add_heart_coordinate():
+	var heart_position = _find_heart_position()
+	if heart_position != Vector2.ZERO:
+		heart_coordinate = heart_position
+		print("❤️ [SignalBus] Heart坐标已添加: ", heart_coordinate)
+		_update_movement_bounds()
+	else:
+		print("⚠️ [SignalBus] 未找到Heart位置")
+
+## 查找heart的位置
+func _find_heart_position() -> Vector2:
+	# 方法1: 通过First_Point查找
+	var main_scene = get_tree().current_scene
+	var first_point = main_scene.find_child("First_Point", true, false)
+	if first_point:
+		print("❤️ [SignalBus] 通过First_Point找到Heart位置: ", first_point.global_position)
+		return first_point.global_position
+	
+	# 方法2: 通过Heart节点直接查找
+	var heart_node = main_scene.find_child("Heart", true, false)
+	if heart_node:
+		print("❤️ [SignalBus] 通过Heart节点找到位置: ", heart_node.global_position)
+		return heart_node.global_position
+	
+	# 方法3: 在Fruits节点下查找First_Point
+	var fruits_node = main_scene.find_child("Fruits", true, false)
+	if fruits_node:
+		first_point = fruits_node.get_node_or_null("First_Point")
+		if first_point:
+			print("❤️ [SignalBus] 在Fruits下找到First_Point: ", first_point.global_position)
+			return first_point.global_position
+	
+	print("⚠️ [SignalBus] 所有方法都未找到Heart位置")
+	return Vector2.ZERO
+
+## 获取包含Heart的所有坐标（供调试使用）
+func get_all_coordinates() -> Array[Vector2]:
+	var all_coords: Array[Vector2] = []
+	if heart_coordinate != Vector2.ZERO:
+		all_coords.append(heart_coordinate)
+	all_coords.append_array(fruit_coordinates)
+	return all_coords
+
+## 获取Heart坐标（供外部调用）
+func get_heart_coordinate() -> Vector2:
+	return heart_coordinate

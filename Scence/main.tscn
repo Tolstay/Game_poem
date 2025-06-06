@@ -97,7 +97,7 @@ texture = SubResource("AtlasTexture_k2005")
 unique_name_in_owner = true
 
 [node name="Movement" parent="SubViewportContainer/SubViewport" instance=ExtResource("4_g1tjp")]
-position = Vector2(579, 339)
+position = Vector2(611, 319)
 
 [node name="Camera2D" type="Camera2D" parent="SubViewportContainer/SubViewport/Movement"]
 

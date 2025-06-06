@@ -538,6 +538,9 @@ func _instantiate_fruits_at_endpoint_nodes():
 				add_child(fruit)
 			
 			points_with_fruit[i] = true  # 标记为已实例化果实
+			
+			# 通知SignalBus fruit已生成
+			_notify_fruit_generated(point_positions[i])
 
 ## 计算fruit的旋转角度，使其尾部（负y轴）连接到branch
 func _calculate_fruit_rotation(point_index: int) -> float:
@@ -819,6 +822,9 @@ func generate_fruit_at_point(point_index: int):
 	while points_with_fruit.size() <= point_index:
 		points_with_fruit.append(false)
 	points_with_fruit[point_index] = true
+	
+	# 通知SignalBus fruit已生成
+	_notify_fruit_generated(point_position)
 
 ## 在fruit实例中查找Marker2D节点
 func _find_marker2d_in_fruit(fruit_node: Node) -> Marker2D:
@@ -925,3 +931,19 @@ func get_bloodcut_at_point(point_index: int) -> Node2D:
 		return bloodcut
 	
 	return null
+
+## 通知SignalBus fruit已生成
+func _notify_fruit_generated(position: Vector2):
+	# 查找SignalBus节点并发出信号
+	var signalbus = get_tree().get_first_node_in_group("signalbus")
+	if not signalbus:
+		# 尝试通过路径查找
+		var main_scene = get_tree().current_scene
+		if main_scene:
+			signalbus = main_scene.find_child("Signalbus", true, false)
+	
+	if signalbus and signalbus.has_signal("fruit_generated"):
+		signalbus.fruit_generated.emit(position)
+		print("🍎 [Fruits] 已通知SignalBus fruit生成: ", position)
+	else:
+		print("⚠️ [Fruits] 未找到SignalBus或fruit_generated信号")

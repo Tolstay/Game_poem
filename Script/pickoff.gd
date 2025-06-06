@@ -645,6 +645,9 @@ func _notify_bloodcut_fruit_removed():
 	var fruit_position = pickable_object.global_position
 	print("🍎 [DEBUG] 通知bloodcut fruit被摘除，位置:", fruit_position)
 	
+	# 通知SignalBus fruit已被移除
+	_notify_signalbus_fruit_removed(fruit_position)
+	
 	# 查找相同位置的bloodcut
 	var bloodcut = _find_bloodcut_at_position(fruit_position)
 	if bloodcut and bloodcut.has_method("on_fruit_removed"):
@@ -705,3 +708,17 @@ func _is_bloodcut_node(node: Node) -> bool:
 		return true
 	
 	return false
+
+## 通知SignalBus fruit已被移除
+func _notify_signalbus_fruit_removed(position: Vector2):
+	# 只有fruit类型才通知SignalBus
+	if object_type != "Fruit":
+		return
+	
+	# 查找SignalBus节点并发出信号
+	var signalbus = get_tree().get_first_node_in_group("signalbus")
+	if signalbus and signalbus.has_signal("fruit_removed"):
+		signalbus.fruit_removed.emit(position)
+		print("🍎 [Pickoff] 已通知SignalBus fruit被移除: ", position)
+	else:
+		print("⚠️ [Pickoff] 未找到SignalBus或fruit_removed信号")

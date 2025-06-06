@@ -21,6 +21,10 @@ var target_position: Vector2 = Vector2.ZERO
 # 游戏状态控制
 var gameover: bool = false  # 游戏结束状态，禁用移动跟随
 
+# 边界限制
+var movement_bounds: Rect2 = Rect2()  # 移动边界
+var bounds_enabled: bool = false  # 是否启用边界限制
+
 
 func _physics_process(delta):
 	# 如果游戏结束，禁用所有移动
@@ -29,6 +33,9 @@ func _physics_process(delta):
 		velocity = Vector2(0, 15.0)  # 15.0像素/秒向下，与petal掉落速度一致
 		move_and_slide()
 		return
+	
+	# 连接SignalBus的边界更新信号（延迟连接）
+	_connect_signalbus_if_needed()
 	
 	# 获取输入
 	_handle_input()
@@ -89,6 +96,10 @@ func _apply_movement(delta):
 		# 无输入时减速
 		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 	
+	# 应用边界限制
+	if bounds_enabled:
+		_apply_boundary_constraints()
+	
 	# 确保无重力影响（如果有任何垂直重力，将其清除）
 	# CharacterBody2D默认不受重力影响，但为了确保我们明确设置
 	# 不需要额外处理重力，因为我们完全控制了velocity
@@ -108,3 +119,38 @@ func set_gameover(state: bool):
 ## 获取游戏结束状态（供外部调用）
 func is_gameover() -> bool:
 	return gameover
+
+## 连接SignalBus信号（延迟连接）
+func _connect_signalbus_if_needed():
+	# 查找SignalBus节点
+	var signalbus = get_tree().get_first_node_in_group("signalbus")
+	if signalbus and signalbus.has_signal("movement_bounds_updated"):
+		# 检查是否已经连接
+		if not signalbus.movement_bounds_updated.is_connected(_on_movement_bounds_updated):
+			signalbus.movement_bounds_updated.connect(_on_movement_bounds_updated)
+
+## 当边界更新时调用
+func _on_movement_bounds_updated(bounds: Rect2):
+	movement_bounds = bounds
+	bounds_enabled = bounds.size.x > 1 and bounds.size.y > 1  # 只有有效边界才启用
+	
+	if bounds_enabled:
+		print("🎯 [Movement] 边界已更新: ", bounds)
+	else:
+		print("🚫 [Movement] 移动被禁用（无fruit）")
+
+## 应用边界约束
+func _apply_boundary_constraints():
+	if not bounds_enabled:
+		return
+	
+	# 计算预期的新位置
+	var next_position = global_position + velocity * get_physics_process_delta_time()
+	
+	# 限制在边界内
+	next_position.x = clamp(next_position.x, movement_bounds.position.x, movement_bounds.position.x + movement_bounds.size.x)
+	next_position.y = clamp(next_position.y, movement_bounds.position.y, movement_bounds.position.y + movement_bounds.size.y)
+	
+	# 如果位置被限制，调整速度
+	var constrained_velocity = (next_position - global_position) / get_physics_process_delta_time()
+	velocity = constrained_velocity
