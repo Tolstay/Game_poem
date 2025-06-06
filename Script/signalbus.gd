@@ -16,11 +16,42 @@ var fading:bool = false
 
 # 花瓣摘除计数系统
 var petal_pick_count: int = 0
+var pick_number: int = 0
+var first_wind = true
 
 # 使用现有的计时器节点
 @onready var windrises_timer: Timer = %Windrises
 @onready var still_threshold: Timer = %StillThreshold
 @onready var curtain: ColorRect = %Curtain
+@onready var info: Label = %Info
+
+# 打字机效果相关变量（与textdisplay.gd保持一致的速率）
+var typing_speed: float = 0.05  # 每个字符的显示间隔（秒）
+var backspace_speed: float = 0.03  # 每个字符的消失间隔（秒）
+var full_text: String = ""
+var current_char_index: int = 0
+var typing_timer: Timer
+var is_typing: bool = false
+var is_backspacing: bool = false
+
+func _ready():
+	# 创建打字机计时器
+	_setup_typing_timer()
+	await get_tree().create_timer(0.5).timeout
+	info.add_theme_font_size_override("font_size", 20)
+	_start_typing_effect("First Moves")
+	await get_tree().create_timer(2.0).timeout
+	_start_backspace_effect()
+	await get_tree().create_timer(1.0).timeout
+	info.add_theme_font_size_override("font_size", 10)
+	_start_typing_effect("long press to remove")
+	
+	
+func _setup_typing_timer():
+	typing_timer = Timer.new()
+	typing_timer.wait_time = typing_speed
+	typing_timer.timeout.connect(_on_typing_timer_timeout)
+	add_child(typing_timer)
 
 @warning_ignore("unused_parameter")
 
@@ -65,6 +96,11 @@ func _stop_all_timers():
 
 ## windrises计时器超时处理
 func _on_windrises_timeout():
+	if first_wind == true:
+		first_wind = false
+		print("第一阵风过了")
+		_start_backspace_effect()
+	
 	fade_in_now.emit()
 
 ## 当接收到fruit_picked信号时的处理方法
@@ -85,6 +121,10 @@ func _on_curtain_fade_in_completed_forbus() -> void:
 ## 花瓣被摘除时调用（增加计数）
 func on_petal_picked():
 	petal_pick_count += 1
+	pick_number += 1
+	
+	# 根据摘除数量更新info文本
+	_update_info_text(pick_number)
 
 ## 获取当前应显示的文本
 func get_current_petal_text() -> String:
@@ -105,3 +145,123 @@ func get_current_petal_text() -> String:
 		result += base_text
 	
 	return result
+
+## 根据摘除数量更新info文本
+func _update_info_text(pick_num: int):
+	if not info:
+		return
+		
+	match pick_num:
+		1:
+			# 清空文本
+			if info.text != "":
+				_start_backspace_effect()
+		3:
+			# 显示提示文本
+			if first_wind == true:
+				_start_typing_effect("Hold still for the wind")
+
+## 开始打字机效果
+func _start_typing_effect(text: String):
+	if is_typing or is_backspacing:
+		# 如果正在执行其他效果，先停止
+		_stop_all_effects()
+	
+	full_text = text
+	is_typing = true
+	current_char_index = 0
+	
+	if info:
+		info.text = ""
+		info.visible = true
+	
+	typing_timer.wait_time = typing_speed
+	typing_timer.start()
+
+## 开始backspace效果
+func _start_backspace_effect():
+	if is_backspacing or not info or not info.visible:
+		return
+	
+	# 停止打字效果
+	if is_typing:
+		_stop_typing_effect()
+	
+	is_backspacing = true
+	current_char_index = info.text.length()
+	
+	typing_timer.wait_time = backspace_speed
+	typing_timer.start()
+
+## 停止打字机效果
+func _stop_typing_effect():
+	if is_typing:
+		is_typing = false
+		typing_timer.stop()
+
+## 停止backspace效果
+func _stop_backspace_effect():
+	if is_backspacing:
+		is_backspacing = false
+		typing_timer.stop()
+		if info:
+			info.text = ""
+			info.visible = false
+
+## 停止所有效果
+func _stop_all_effects():
+	_stop_typing_effect()
+	_stop_backspace_effect()
+
+## 打字机计时器回调
+func _on_typing_timer_timeout():
+	if is_typing:
+		_handle_typing_step()
+	elif is_backspacing:
+		_handle_backspace_step()
+
+## 处理打字步骤
+func _handle_typing_step():
+	if current_char_index >= full_text.length():
+		_complete_typing_effect()
+		return
+	
+	# 显示下一个字符
+	current_char_index += 1
+	if info:
+		info.text = full_text.substr(0, current_char_index)
+
+## 处理backspace步骤
+func _handle_backspace_step():
+	if current_char_index <= 0:
+		_complete_backspace_effect()
+		return
+	
+	# 删除最后一个字符
+	current_char_index -= 1
+	if info:
+		if current_char_index > 0:
+			info.text = info.text.substr(0, current_char_index)
+		else:
+			info.text = ""
+
+## 完成打字机效果
+func _complete_typing_effect():
+	is_typing = false
+	typing_timer.stop()
+	if info:
+		info.text = full_text
+
+## 完成backspace效果
+func _complete_backspace_effect():
+	is_backspacing = false
+	typing_timer.stop()
+	current_char_index = 0
+	if info:
+		info.text = ""
+		info.visible = false
+
+## 测试打字机效果（调试用）
+func test_typewriter_effect():
+	print("🧪 [SignalBus] 测试打字机效果")
+	_start_typing_effect("测试打字机效果")

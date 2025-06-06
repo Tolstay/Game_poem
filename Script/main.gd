@@ -326,6 +326,10 @@ func _initialize_petal_system():
 	
 	# 在预定位置生成petal直到数量达到上限
 	_generate_petals_to_limit()
+	
+	# 通知signalbus初始化花瓣计数
+	if signalbus:
+		print("🌸 [Main] 初始化花瓣计数: ", petal_count)
 
 ## 计算petal的预定位置
 func _calculate_petal_positions():
