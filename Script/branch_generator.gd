@@ -4,22 +4,22 @@ extends Node2D
 ## 简单的生成逻辑，由Fruits控制器调用
 
 @export_group("Trunk System", "trunk_")
-@export var trunk_length_min: float = 60.0  # Trunk最小长度
+@export var trunk_length_min: float = 70.0  # Trunk最小长度
 @export var trunk_length_max: float = 120.0  # Trunk最大长度
 @export var trunk_length_randomness: float = 0.6  # Trunk长度随机化频率 (0.0=固定长度, 1.0=完全随机)
 @export var trunk_angle_min_degrees: float = 30.0  # Trunk最小分支角度（度）
 @export var trunk_angle_max_degrees: float = 70.0  # Trunk最大分支角度（度）
 @export var trunk_angle_min_separation_degrees: float = 50.0  # Trunk同一生成点的分支之间最小角度（度）
 @export var trunk_point_radius: float = 60.0  # Trunk点的碰撞半径
-@export var trunk_line_width: float = 4.0  # Trunk线段宽度
+@export var trunk_line_width: float = 3.8  # Trunk线段宽度
 @export var trunk_line_color: Color = Color.BLACK  # Trunk线段颜色
 
 @export_group("Trunk Bend System", "trunk_bend_")
 @export var trunk_bend_min_points: int = 5  # Trunk最小折线点数量
 @export var trunk_bend_max_points: int = 10  # Trunk最大折线点数量
 @export var trunk_bend_probability: float = 1.0  # Trunk生成折线点的概率
-@export var trunk_bend_min_offset: float = 3.0  # Trunk最小垂直偏移距离
-@export var trunk_bend_max_offset: float = 12.0  # Trunk最大垂直偏移距离
+@export var trunk_bend_min_offset: float = 4.0  # Trunk最小垂直偏移距离
+@export var trunk_bend_max_offset: float = 15.0  # Trunk最大垂直偏移距离
 @export var trunk_bend_min_segment_length: float = 50.0  # Trunk生成折线点的最小线段长度
 @export var trunk_bend_enable_coordinated: bool = true  # 是否启用Trunk协调弯曲（避免曲折）
 @export var trunk_bend_arc_intensity: float = 1.0  # Trunk弧形强度（0.0=直线分布，1.0=完整弧形）

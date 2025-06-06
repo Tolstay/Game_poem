@@ -6,7 +6,7 @@
 scale = Vector2(0.320002, 0.444446)
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(9.37493, 1.27897e-13)
+position = Vector2(6.24995, -1.39573e-05)
 rotation = 6.28319
-scale = Vector2(0.46001, 0.46001)
+scale = Vector2(0.317965, 0.46001)
 texture = ExtResource("1_egbpr")

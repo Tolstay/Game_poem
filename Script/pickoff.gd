@@ -32,11 +32,11 @@ var is_interaction_disabled: bool = false  # 新增：控制交互是否被禁�
 @export var wind_shake_enabled: bool = true              # 是否启用风抖动
 @export var wind_shake_intensity: float = 0.5           # 风抖动强度（像素）
 @export var wind_shake_frequency: float = 0.3           # 抖动频率（秒）
-@export var wind_shake_duration: float = 10            # 持续时间（秒，-1为无限）
-@export var wind_shake_fade_in_time: float = 2.0        # 渐入时间
-@export var wind_shake_fade_out_time: float = 4.0       # 渐出时间
-@export var wind_horizontal_bias: float = 0.15           # 水平抖动偏向（0.0-1.0）
-@export var wind_randomness: float = 0.3                # 随机性（0.0-1.0）
+@export var wind_shake_duration: float = 7            # 持续时间（秒，-1为无限）
+@export var wind_shake_fade_in_time: float = 3.0        # 渐入时间
+@export var wind_shake_fade_out_time: float = 5.0       # 渐出时间
+@export var wind_horizontal_bias: float = 0.2           # 水平抖动偏向（0.0-1.0）
+@export var wind_randomness: float = 0.5                # 随机性（0.0-1.0）
 
 var is_mouse_down: bool = false
 var mouse_down_timer: float = 0.0
