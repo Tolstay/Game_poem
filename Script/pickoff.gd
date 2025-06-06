@@ -13,6 +13,10 @@ var collision_shape: CollisionShape2D
 # Camera2D引用（用于坐标转换）
 var camera: Camera2D
 
+# 音频播放器引用
+var fruit_pickoff_audio: AudioStreamPlayer
+var petal_pickoff_audio: AudioStreamPlayer
+
 # 状态控制
 var is_picked: bool = false
 var is_interaction_disabled: bool = false  # 新增：控制交互是否被禁用
@@ -40,6 +44,41 @@ var object_type: String = "Unknown"
 func _ready():
 	# 查找Camera2D（用于坐标转换）
 	camera = _find_camera2d()
+	
+	# 查找fruit音频播放器
+	var fruit_possible_names = ["fruit_pickoff", "AudioStreamPlayer", "fruit_audio"]
+	for name in fruit_possible_names:
+		fruit_pickoff_audio = get_node_or_null(name)
+		if fruit_pickoff_audio:
+			break
+	
+	# 查找petal音频播放器
+	var petal_possible_names = ["petal_pickoff", "petal_audio"]
+	for name in petal_possible_names:
+		petal_pickoff_audio = get_node_or_null(name)
+		if petal_pickoff_audio:
+			break
+	
+	# 输出找到的音频播放器信息
+	if fruit_pickoff_audio:
+		print("成功找到fruit音频播放器: ", fruit_pickoff_audio.name)
+		if fruit_pickoff_audio.stream:
+			print("fruit音频流已设置: ", fruit_pickoff_audio.stream.resource_path)
+		else:
+			print("警告：fruit音频播放器没有设置音频流(stream)")
+		print("fruit音频播放器音量: ", fruit_pickoff_audio.volume_db)
+	else:
+		print("警告：未找到fruit_pickoff音频播放器")
+	
+	if petal_pickoff_audio:
+		print("成功找到petal音频播放器: ", petal_pickoff_audio.name)
+		if petal_pickoff_audio.stream:
+			print("petal音频流已设置: ", petal_pickoff_audio.stream.resource_path)
+		else:
+			print("警告：petal音频播放器没有设置音频流(stream)")
+		print("petal音频播放器音量: ", petal_pickoff_audio.volume_db)
+	else:
+		print("警告：未找到petal_pickoff音频播放器")
 	
 	# 连接signalbus的disable_pickoff_interaction信号
 	call_deferred("_connect_signalbus_signals")
@@ -253,13 +292,18 @@ func _process(delta):
 
 ## 开始长按交互
 func _start_hold_interaction(mouse_pos: Vector2):
+	print("开始长按交互")
 	is_mouse_down = true
 	mouse_down_timer = 0.0
 	mouse_down_position = mouse_pos
+	
+	
+
 
 ## 取消长按交互
 func _cancel_hold_interaction():
 	if is_mouse_down:
+		print("取消长按交互")
 		is_mouse_down = false
 		mouse_down_timer = 0.0
 		_reset_sprite_position()
@@ -267,9 +311,11 @@ func _cancel_hold_interaction():
 ## 完成长按交互
 func _complete_hold_interaction():
 	if is_mouse_down:
+		print("完成长按交互")
 		is_mouse_down = false
 		mouse_down_timer = 0.0
 		_reset_sprite_position()
+		
 		_pick_object()
 
 ## 应用抖动动画
@@ -312,6 +358,22 @@ func _pick_object():
 		return
 	
 	is_picked = true
+	
+	# 根据对象类型播放相应的摘除音效
+	if object_type == "Fruit":
+		if fruit_pickoff_audio:
+			print("播放fruit摘除音效")
+			fruit_pickoff_audio.play()
+		else:
+			print("fruit音频播放器不存在，无法播放音效")
+	elif object_type == "Petal":
+		if petal_pickoff_audio:
+			print("播放petal摘除音效")
+			petal_pickoff_audio.play()
+		else:
+			print("petal音频播放器不存在，无法播放音效")
+	else:
+		print("未知对象类型: ", object_type, "，无法播放音效")
 	
 	# 如果是petal，从对应的位置group中移除
 	if object_type == "Petal":
