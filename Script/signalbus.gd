@@ -24,6 +24,8 @@ var first_wind = true
 @onready var still_threshold: Timer = %StillThreshold
 @onready var curtain: ColorRect = %Curtain
 @onready var info: Label = %Info
+@onready var ending: AudioStreamPlayer = %ending
+
 
 # 打字机效果相关变量（与textdisplay.gd保持一致的速率）
 var typing_speed: float = 0.05  # 每个字符的显示间隔（秒）
@@ -123,8 +125,25 @@ func on_petal_picked():
 	petal_pick_count += 1
 	pick_number += 1
 	
+	# 检测剩余petal数量
+	var remaining_petals = _check_remaining_petals()
+	print("🌸 [SignalBus] 花瓣摘除 - 已摘: ", pick_number, " 剩余: ", remaining_petals)
+	
+	
+	
 	# 根据摘除数量更新info文本
 	_update_info_text(pick_number)
+	
+	if remaining_petals == 0:
+		_start_backspace_effect()
+		await get_tree().create_timer(3.0).timeout
+		_start_typing_effect("You've made your choice")
+		ending.play()
+		await get_tree().create_timer(3.0).timeout
+		_start_backspace_effect()
+		await get_tree().create_timer(1.5).timeout
+		info.add_theme_font_size_override("font_size", 20)
+		_start_typing_effect("Game Over")
 
 ## 获取当前应显示的文本
 func get_current_petal_text() -> String:
@@ -265,3 +284,38 @@ func _complete_backspace_effect():
 func test_typewriter_effect():
 	print("🧪 [SignalBus] 测试打字机效果")
 	_start_typing_effect("测试打字机效果")
+
+## 检测剩余petal数量
+func _check_remaining_petals() -> int:
+	var remaining_count = 0
+	var main_scene = get_tree().current_scene
+	
+	# 通过group系统统计剩余的petal
+	var petal_group_prefix = "petal_position_"
+	
+	# 遍历所有可能的位置组
+	for i in range(20):  # 假设最多20个位置
+		var group_name = petal_group_prefix + str(i)
+		var petals_at_position = get_tree().get_nodes_in_group(group_name)
+		
+		# 统计有效且未被摘除的petal节点
+		for petal in petals_at_position:
+			if is_instance_valid(petal) and petal.is_inside_tree():
+				# 检查petal是否还未被摘除（通过检查pickoff状态）
+				var pickoff_node = petal.find_child("pickoff", true, false)
+				if pickoff_node and pickoff_node.has_method("is_object_picked"):
+					if not pickoff_node.is_object_picked():
+						remaining_count += 1
+				else:
+					# 如果没有pickoff节点或方法，默认计入剩余
+					remaining_count += 1
+	
+	return remaining_count
+
+## 获取剩余petal总数（供外部调用）
+func get_remaining_petals_count() -> int:
+	return _check_remaining_petals()
+
+## 检查是否所有petal都已被摘除
+func are_all_petals_picked() -> bool:
+	return _check_remaining_petals() == 0

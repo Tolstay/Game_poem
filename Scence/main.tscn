@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=22 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
 [ext_resource type="Script" uid="uid://23uc0ufxq2kx" path="res://Script/main.gd" id="1_k2005"]
@@ -16,6 +16,7 @@
 [ext_resource type="AudioStream" uid="uid://c0qyan1x2ndtk" path="res://Sound/windrises.wav" id="12_01llu"]
 [ext_resource type="AudioStream" uid="uid://xd6njoxuguf8" path="res://Sound/night-ambience-17064.mp3" id="13_alkcg"]
 [ext_resource type="Script" uid="uid://cl0855todhx5u" path="res://Script/wind_manager.gd" id="14_yjbia"]
+[ext_resource type="AudioStream" uid="uid://drosku7ykeacp" path="res://Sound/autumn-leaf-33191.mp3" id="16_rxihw"]
 
 [sub_resource type="Curve" id="Curve_01llu"]
 _limits = [0.355749, 10.0, 1.0, 20.0]
@@ -137,6 +138,11 @@ stream = ExtResource("12_01llu")
 unique_name_in_owner = true
 stream = ExtResource("13_alkcg")
 autoplay = true
+
+[node name="ending" type="AudioStreamPlayer" parent="Sounds"]
+unique_name_in_owner = true
+stream = ExtResource("16_rxihw")
+volume_db = -3.0
 
 [node name="windmanager" type="Node2D" parent="."]
 script = ExtResource("14_yjbia")
