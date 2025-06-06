@@ -6,6 +6,9 @@ extends Node2D
 @onready var signalbus: Node = %Signalbus
 @onready var globalbgm: AudioStreamPlayer = %globalbgm
 
+# WindManager引用
+var wind_manager: Node2D
+
 # 鼠标静止检测信号
 signal mouse_stopped_moving
 signal mouse_started_moving
@@ -239,6 +242,9 @@ func _ready():
 	# 查找First_Point（支持SubViewport结构）
 	_find_first_point()
 	
+	# 创建并初始化WindManager
+	_create_wind_manager()
+	
 	# 如果启用自动生成，初始化petal系统
 	if petal_auto_generate and first_point:
 		_initialize_petal_system()
@@ -438,3 +444,16 @@ func _on_signalbus_fruit_picked_now() -> void:
 
 func _on_curtain_fade_in_completed() -> void:
 	_execute_coordinated_generation() ## 现在由曲线资源控制生成数量
+
+## 创建并初始化WindManager
+func _create_wind_manager():
+	# 加载WindManager脚本
+	var wind_manager_script = preload("res://Script/wind_manager.gd")
+	wind_manager = Node2D.new()
+	wind_manager.set_script(wind_manager_script)
+	wind_manager.name = "WindManager"
+	
+	# 添加到场景
+	add_child(wind_manager)
+	
+	print("WindManager已创建并添加到main场景")

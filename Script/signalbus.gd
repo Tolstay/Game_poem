@@ -8,6 +8,10 @@ signal fade_in_now
 signal disable_pickoff_interaction
 signal able_pickoff_interaction
 
+# 风抖动信号
+signal wind_shake_start(duration: float, intensity: float, frequency: float, horizontal_bias: float, randomness: float)
+signal wind_shake_stop
+
 var fading:bool = false
 
 # 花瓣摘除计数系统

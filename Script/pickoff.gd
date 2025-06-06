@@ -27,6 +27,17 @@ var is_interaction_disabled: bool = false  # 新增：控制交互是否被禁�
 @export var max_shake_intensity: float = 1.0  # 最大抖动强度
 @export var mouse_move_tolerance: float = 20.0  # 允许的鼠标移动距离
 
+# 风抖动参数
+@export_group("Wind Shake Effect", "wind_")
+@export var wind_shake_enabled: bool = true              # 是否启用风抖动
+@export var wind_shake_intensity: float = 0.5           # 风抖动强度（像素）
+@export var wind_shake_frequency: float = 0.3           # 抖动频率（秒）
+@export var wind_shake_duration: float = 10            # 持续时间（秒，-1为无限）
+@export var wind_shake_fade_in_time: float = 2.0        # 渐入时间
+@export var wind_shake_fade_out_time: float = 4.0       # 渐出时间
+@export var wind_horizontal_bias: float = 0.15           # 水平抖动偏向（0.0-1.0）
+@export var wind_randomness: float = 0.3                # 随机性（0.0-1.0）
+
 var is_mouse_down: bool = false
 var mouse_down_timer: float = 0.0
 var mouse_down_position: Vector2
@@ -37,6 +48,13 @@ var sprite_node: Sprite2D
 var fall_tween: Tween
 var original_sprite_rotation: float
 var original_sprite_scale: Vector2
+
+# 风抖动相关变量
+var wind_shake_tween: Tween
+var is_wind_shaking: bool = false
+var wind_shake_start_time: float = 0.0  # 使用全局时间基准
+var current_wind_intensity: float = 0.0
+var is_wind_fading_out: bool = false
 
 # 对象类型标识（用于调试）
 var object_type: String = "Unknown"
@@ -127,10 +145,21 @@ func _connect_signalbus_signals():
 ## 响应禁用交互信号
 func _on_disable_pickoff_interaction():
 	is_interaction_disabled = true
+	
+	# 通过SignalBus发送风抖动信号（只有第一个接收到的对象发送，避免重复）
+	if wind_shake_enabled:
+		var signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
+		if signalbus and signalbus.has_signal("wind_shake_start"):
+			signalbus.wind_shake_start.emit(wind_shake_duration, wind_shake_intensity, wind_shake_frequency, wind_horizontal_bias, wind_randomness)
+		
+		# 启动本地风抖动效果
+		_start_wind_shake()
 
 	
 func _on_able_pickoff_interaction():
 	is_interaction_disabled = false
+	
+	# 不再通过信号停止风抖动，完全依赖duration参数
 
 
 ## 检查交互是否被禁用（供外部调用）
@@ -289,6 +318,10 @@ func _process(delta):
 		# 检查是否到达长按时间
 		if mouse_down_timer >= hold_time_required:
 			_complete_hold_interaction()
+	
+	# 更新风抖动
+	if is_wind_shaking:
+		_update_wind_shake(delta)
 
 ## 开始长按交互
 func _start_hold_interaction(mouse_pos: Vector2):
@@ -339,7 +372,9 @@ func _apply_shake_animation():
 ## 重置Sprite位置和属性
 func _reset_sprite_position():
 	if sprite_node:
-		sprite_node.position = original_sprite_position
+		# 只有在没有风抖动时才重置位置
+		if not is_wind_shaking:
+			sprite_node.position = original_sprite_position
 		sprite_node.rotation = original_sprite_rotation
 		sprite_node.scale = original_sprite_scale
 	
@@ -500,3 +535,123 @@ func is_object_picked() -> bool:
 func debug_emit_fruit_signal():
 	if object_type == "Fruit":
 		fruit_picked.emit()
+
+# ==================== 风抖动效果 ====================
+
+## 启动风抖动效果
+func _start_wind_shake():
+	if not sprite_node:
+		return
+	
+	
+	# 允许重复播放，重置状态
+	if is_wind_shaking:
+		_force_stop_wind_shake()
+	
+	is_wind_shaking = true
+	is_wind_fading_out = false
+	wind_shake_start_time = Time.get_ticks_msec() / 1000.0  # 统一时间基准
+	current_wind_intensity = 0.0
+	
+	# 创建渐入Tween
+	if wind_shake_tween:
+		wind_shake_tween.kill()
+	wind_shake_tween = create_tween()
+	wind_shake_tween.tween_property(self, "current_wind_intensity", wind_shake_intensity, wind_shake_fade_in_time)
+	wind_shake_tween.set_ease(Tween.EASE_OUT)
+	wind_shake_tween.set_trans(Tween.TRANS_SINE)
+
+# 注意：已移除_stop_wind_shake方法，使用_start_wind_fade_out方法替代
+
+## 完成风抖动停止
+func _complete_wind_shake_stop():
+	is_wind_shaking = false
+	is_wind_fading_out = false
+	current_wind_intensity = 0.0
+	if sprite_node:
+		sprite_node.position = original_sprite_position
+
+## 开始风抖动渐出效果
+func _start_wind_fade_out(fade_duration: float):
+	if not is_wind_shaking or is_wind_fading_out:
+		return
+	
+	is_wind_fading_out = true
+	
+	# 创建渐出Tween
+	if wind_shake_tween:
+		wind_shake_tween.kill()
+	wind_shake_tween = create_tween()
+	wind_shake_tween.tween_property(self, "current_wind_intensity", 0.0, fade_duration)
+	wind_shake_tween.set_ease(Tween.EASE_IN)
+	wind_shake_tween.set_trans(Tween.TRANS_SINE)
+	
+	# 渐出完成后重置状态
+	wind_shake_tween.tween_callback(_complete_wind_shake_stop)
+
+## 强制停止风抖动（用于重复播放）
+func _force_stop_wind_shake():
+	if wind_shake_tween:
+		wind_shake_tween.kill()
+		wind_shake_tween = null
+	is_wind_shaking = false
+	is_wind_fading_out = false
+	current_wind_intensity = 0.0
+	if sprite_node:
+		sprite_node.position = original_sprite_position
+
+## 更新风抖动
+func _update_wind_shake(delta: float):
+	if not sprite_node:
+		return
+	
+	var current_time = Time.get_ticks_msec() / 1000.0
+	var elapsed_time = current_time - wind_shake_start_time
+	
+	# 计算何时开始渐出（确保在总时长内完成渐出）
+	var fade_out_start_time = max(0.0, wind_shake_duration - wind_shake_fade_out_time)
+	
+	# 检查是否应该开始渐出
+	if wind_shake_duration > 0 and elapsed_time >= fade_out_start_time and current_wind_intensity > 0:
+		var remaining_time = wind_shake_duration - elapsed_time
+		if remaining_time <= wind_shake_fade_out_time and not is_wind_fading_out:
+			_start_wind_fade_out(remaining_time)
+			return
+	
+	# 检查是否完全结束
+	if wind_shake_duration > 0 and elapsed_time >= wind_shake_duration:
+		_force_stop_wind_shake()
+		return
+	
+	# 应用风抖动
+	_apply_wind_shake_animation(elapsed_time)
+
+## 应用风抖动动画
+func _apply_wind_shake_animation(elapsed_time: float):
+	if not sprite_node or current_wind_intensity <= 0:
+		return
+	
+	# 基于统一时间基准的正弦波抖动
+	var time_factor = elapsed_time / wind_shake_frequency
+	var base_shake_x = sin(time_factor * TAU) * current_wind_intensity
+	var base_shake_y = sin(time_factor * TAU * 0.7) * current_wind_intensity
+	
+	# 应用水平偏向
+	base_shake_x *= wind_horizontal_bias
+	base_shake_y *= (1.0 - wind_horizontal_bias * 0.5)
+	
+	# 添加随机性（基于对象唯一性，确保每个对象的随机性一致但不同）
+	var object_hash = hash(get_instance_id())
+	var random_seed = int(elapsed_time * 10.0) + object_hash
+	var rng = RandomNumberGenerator.new()
+	rng.seed = random_seed
+	
+	var random_factor_x = rng.randf_range(-wind_randomness, wind_randomness)
+	var random_factor_y = rng.randf_range(-wind_randomness, wind_randomness)
+	
+	var final_shake_x = base_shake_x + (random_factor_x * current_wind_intensity)
+	var final_shake_y = base_shake_y + (random_factor_y * current_wind_intensity)
+	
+	# 应用抖动偏移
+	var shake_offset = Vector2(final_shake_x, final_shake_y)
+	sprite_node.position = original_sprite_position + shake_offset
