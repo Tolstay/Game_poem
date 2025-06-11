@@ -12,7 +12,7 @@ signal fade_in_completed_forbus
 
 func _ready():
 	# 确保curtain有可见的颜色（黑色）
-	color = Color.BLACK
+	# 目前修改为蓝色
 	# 初始状态设为完全透明
 	modulate.a = 0.0
 

@@ -4,7 +4,6 @@ var fade_tween: Tween
 
 func _ready():
 	# 确保curtain有可见的颜色（黑色）
-	color = Color.BLACK
 	modulate.a = 1.0
 
 	
