@@ -4,9 +4,9 @@ extends Node2D
 ## 简单的生成逻辑，由Fruits控制器调用
 
 @export_group("Trunk System", "trunk_")
-@export var trunk_length_min: float = 70.0  # Trunk最小长度
-@export var trunk_length_max: float = 120.0  # Trunk最大长度
-@export var trunk_length_randomness: float = 0.6  # Trunk长度随机化频率 (0.0=固定长度, 1.0=完全随机)
+@export var trunk_length_min: float = 80.0  # Trunk最小长度
+@export var trunk_length_max: float = 110.0  # Trunk最大长度
+@export var trunk_length_randomness: float = 0.7  # Trunk长度随机化频率 (0.0=固定长度, 1.0=完全随机)
 @export var trunk_angle_min_degrees: float = 30.0  # Trunk最小分支角度（度）
 @export var trunk_angle_max_degrees: float = 70.0  # Trunk最大分支角度（度）
 @export var trunk_angle_min_separation_degrees: float = 50.0  # Trunk同一生成点的分支之间最小角度（度）
@@ -40,12 +40,12 @@ extends Node2D
 @export var branch_bend_offset_smoothness: float = 0.7  # Branch偏移量平滑度
 
 @export_group("Branch System", "branch_")
-@export var branch_length_min: float = 40.0  # Branch最小长度
-@export var branch_length_max: float = 60.0  # Branch最大长度
+@export var branch_length_min: float = 35.0  # Branch最小长度
+@export var branch_length_max: float = 55.0  # Branch最大长度
 @export var branch_length_randomness: float = 0.8  # Branch长度随机化频率
 @export var branch_min_angle_degrees: float = 40.0  # branch相对trunk的最小角度（度）
 @export var branch_max_angle_degrees: float = 65.0  # branch相对trunk的最大角度（度）
-@export var branch_collision_radius: float = 30.0  # branch_point的碰撞半径（决定实际可容纳数量）
+@export var branch_collision_radius: float = 20.0  # branch_point的碰撞半径（决定实际可容纳数量）
 @export var branch_position_min: float = 0.15  # branch_point在线段上的最小位置（0.0-1.0）
 @export var branch_position_max: float = 0.85  # branch_point在线段上的最大位置（0.0-1.0）
 @export var branch_line_width: float = 3.5  # Branch线段宽度

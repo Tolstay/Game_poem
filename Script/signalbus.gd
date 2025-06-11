@@ -28,6 +28,8 @@ var petal_pick_count: int = 0
 var pick_number: int = 0
 var first_wind = true
 var first_pick = true
+var show_text = false
+var gameover = false
 
 # 使用现有的计时器节点
 @onready var windrises_timer: Timer = %Windrises
@@ -57,13 +59,22 @@ func _ready():
 	# 延迟添加heart坐标（等待场景完全加载）
 	call_deferred("_add_heart_coordinate")
 	
+	
 	# 创建打字机计时器
 	_setup_typing_timer()
 	await get_tree().create_timer(0.5).timeout
 	info.add_theme_font_size_override("font_size", 10)
 	_start_typing_effect("Recall a decision that\nyou’ve been putting off")
+	if gameover:
+		return
+	if first_pick == false:
+		return
 	await get_tree().create_timer(8.0).timeout
 	_start_backspace_effect()
+	if gameover:
+		return
+	if first_pick == false:
+		return
 	await get_tree().create_timer(1.5).timeout
 	_start_typing_effect("long press to remove")
 	
@@ -94,8 +105,13 @@ func _connect_pickoff_signals_recursive(node: Node):
 
 ## 当鼠标停止移动时的处理
 func _on_mouse_stopped_moving():
+	if first_pick:
+		return
+		
+	if show_text == false:
+		return
+	
 	if fading == true: #还在fading阶段
-
 		return
 
 	still_threshold.start()
@@ -154,20 +170,19 @@ func on_petal_picked():
 	_update_info_text(pick_number)
 	
 	if remaining_petals == 0:
+		gameover = true
+		print("gameover为true")
 		set_global_gameover(true)
 		_start_backspace_effect()
 		await get_tree().create_timer(3.0).timeout
-		_start_typing_effect("You've made your choice")
+		_start_typing_effect("You've stepped out")
 		ending.play()
-		await get_tree().create_timer(5.0).timeout
+		await get_tree().create_timer(7.0).timeout
 		_start_backspace_effect()
 		await get_tree().create_timer(2.5).timeout
 		info.add_theme_font_size_override("font_size", 20)
 		_start_typing_effect("Game Over")
-		await get_tree().create_timer(5.0).timeout
-		_start_backspace_effect()
-		await get_tree().create_timer(2.5).timeout
-		_start_typing_effect("First Move")
+
 
 ## 获取当前应显示的文本
 func get_current_petal_text() -> String:
@@ -188,10 +203,10 @@ func _update_info_text(pick_num: int):
 			# 清空文本
 			if info.text != "":
 				_start_backspace_effect()
-		3:
-			# 显示提示文本
-			if first_wind == true:
-				_start_typing_effect("Hold still for the wind")
+			first_pick = false
+			await get_tree().create_timer(3.0).timeout
+			_start_typing_effect("Hold still for the wind")
+			show_text = true
 
 ## 开始打字机效果
 func _start_typing_effect(text: String):
@@ -388,6 +403,7 @@ func get_remaining_petals_count() -> int:
 
 ## 检查是否所有petal都已被摘除
 func are_all_petals_picked() -> bool:
+	
 	return _check_remaining_petals() == 0
 
 ## 设置全局游戏结束状态

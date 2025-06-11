@@ -20,7 +20,7 @@ var target_position: Vector2 = Vector2.ZERO
 
 # 游戏状态控制
 var gameover: bool = false  # 游戏结束状态，禁用移动跟随
-@export var enable_zoom_out_on_gameover: bool = true  # 控制游戏结束时是否启用缩放拉远效果
+@export var enable_zoom_out_on_gameover: bool = true # 控制游戏结束时是否启用缩放拉远效果
 
 # 缩放拉远相关变量
 var zoom_out_tween: Tween
