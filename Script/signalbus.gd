@@ -59,9 +59,9 @@ func _ready():
 	# 创建打字机计时器
 	_setup_typing_timer()
 	await get_tree().create_timer(0.5).timeout
-	info.add_theme_font_size_override("font_size", 20)
-	_start_typing_effect("First Moves")
-	await get_tree().create_timer(2.0).timeout
+	info.add_theme_font_size_override("font_size", 10)
+	_start_typing_effect("Recall a decision that\nyou’ve been putting off")
+	await get_tree().create_timer(6.0).timeout
 	_start_backspace_effect()
 	await get_tree().create_timer(1.0).timeout
 	info.add_theme_font_size_override("font_size", 10)
