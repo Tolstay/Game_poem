@@ -20,6 +20,14 @@ var target_position: Vector2 = Vector2.ZERO
 
 # 游戏状态控制
 var gameover: bool = false  # 游戏结束状态，禁用移动跟随
+@export var enable_zoom_out_on_gameover: bool = true  # 控制游戏结束时是否启用缩放拉远效果
+
+# 缩放拉远相关变量
+var zoom_out_tween: Tween
+var camera_node: Camera2D
+var info_node: Label  # Info文字节点引用
+var target_zoom_level: float = 0.3  # 目标缩放级别（更小的值=更远的视野）
+@export var zoom_speed: float = 1.5  # 缩放速度（数值越大缩放越快）
 
 # 边界限制
 var movement_bounds: Rect2 = Rect2()  # 移动边界
@@ -27,10 +35,14 @@ var bounds_enabled: bool = false  # 是否启用边界限制
 
 
 func _physics_process(delta):
-	# 如果游戏结束，禁用所有移动
+	# 如果游戏结束，根据设置选择行为
 	if gameover:
-		# 以petal相同的速度向下移动（因为相机是子节点，会一起移动）
-		velocity = Vector2(0, 15.0)  # 15.0像素/秒向下，与petal掉落速度一致
+		if enable_zoom_out_on_gameover:
+			# 启用缩放拉远效果：禁用移动，让缩放系统接管
+			velocity = Vector2.ZERO
+		else:
+			# 传统行为：以petal相同的速度向下移动
+			velocity = Vector2(0, 15.0)  # 15.0像素/秒向下，与petal掉落速度一致
 		move_and_slide()
 		return
 	
@@ -115,6 +127,8 @@ func set_gameover(state: bool):
 	gameover = state
 	if gameover:
 		print("🎮 [Movement] 游戏结束，移动跟随已禁用")
+		if enable_zoom_out_on_gameover:
+			_start_zoom_out_effect()
 
 ## 获取游戏结束状态（供外部调用）
 func is_gameover() -> bool:
@@ -154,3 +168,148 @@ func _apply_boundary_constraints():
 	# 如果位置被限制，调整速度
 	var constrained_velocity = (next_position - global_position) / get_physics_process_delta_time()
 	velocity = constrained_velocity
+
+## 开始缩放拉远效果
+func _start_zoom_out_effect():
+	# 查找Camera2D节点
+	camera_node = _find_camera2d_child()
+	if not camera_node:
+		print("⚠️ [Movement] 未找到Camera2D，缩放效果无法启动")
+		return
+	
+	# 查找Info节点
+	info_node = _find_info_node()
+	if not info_node:
+		print("⚠️ [Movement] 未找到Info节点，文字可能会被缩放")
+	
+	print("📹 [Movement] 开始缩放拉远效果")
+	
+	# 获取所有branchpoint的位置
+	var branch_bounds = _get_all_branch_points_bounds()
+	if branch_bounds == Rect2():
+		print("⚠️ [Movement] 未找到任何branchpoint，使用默认缩放")
+		_perform_zoom_out(target_zoom_level)
+		return
+	
+	# 计算需要的缩放级别以显示所有branchpoint
+	var required_zoom = _calculate_required_zoom_for_bounds(branch_bounds)
+	print("📏 [Movement] 计算的所需缩放级别: ", required_zoom)
+	
+	_perform_zoom_out(required_zoom)
+
+## 查找Camera2D子节点
+func _find_camera2d_child() -> Camera2D:
+	# 在当前节点的子节点中查找Camera2D
+	for child in get_children():
+		if child is Camera2D:
+			return child as Camera2D
+	return null
+
+## 查找Info节点
+func _find_info_node() -> Label:
+	if camera_node:
+		# Info是Camera2D的子节点
+		for child in camera_node.get_children():
+			if child.name == "Info" and child is Label:
+				return child as Label
+	return null
+
+## 获取所有branchpoint的边界
+func _get_all_branch_points_bounds() -> Rect2:
+	var all_points: Array[Vector2] = []
+	
+	# 通过fruits脚本获取所有点的位置
+	var main_scene = get_tree().current_scene
+	var subviewport_container = main_scene.get_node_or_null("SubViewportContainer")
+	if not subviewport_container:
+		return Rect2()
+	
+	var subviewport = subviewport_container.get_node_or_null("SubViewport")
+	if not subviewport:
+		return Rect2()
+	
+	var fruits_node = subviewport.get_node_or_null("Fruits")
+	if not fruits_node or not fruits_node.has_method("get_all_point_positions"):
+		print("⚠️ [Movement] 未找到Fruits节点或get_all_point_positions方法")
+		return Rect2()
+	
+	# 获取所有点的位置
+	var point_positions = fruits_node.get_all_point_positions()
+	if point_positions.size() == 0:
+		return Rect2()
+	
+	# 计算边界
+	var min_x = point_positions[0].x
+	var max_x = point_positions[0].x
+	var min_y = point_positions[0].y
+	var max_y = point_positions[0].y
+	
+	for pos in point_positions:
+		min_x = min(min_x, pos.x)
+		max_x = max(max_x, pos.x)
+		min_y = min(min_y, pos.y)
+		max_y = max(max_y, pos.y)
+	
+	# 添加一些边距
+	var padding = 100.0
+	return Rect2(
+		Vector2(min_x - padding, min_y - padding),
+		Vector2(max_x - min_x + padding * 2, max_y - min_y + padding * 2)
+	)
+
+## 计算显示指定边界所需的缩放级别
+func _calculate_required_zoom_for_bounds(bounds: Rect2) -> float:
+	if not camera_node:
+		return target_zoom_level
+	
+	# 获取ViewPort大小
+	var viewport_size = get_viewport().get_visible_rect().size
+	
+	# 计算所需的缩放比例
+	var zoom_x = viewport_size.x / bounds.size.x
+	var zoom_y = viewport_size.y / bounds.size.y
+	
+	# 使用较小的缩放值以确保所有内容都可见
+	var required_zoom = min(zoom_x, zoom_y) * 0.8  # 0.8为安全边距
+	
+	# 限制最小和最大缩放
+	required_zoom = clamp(required_zoom, 0.1, 1.0)
+	
+	return required_zoom
+
+## 执行缩放拉远动画
+func _perform_zoom_out(target_zoom: float):
+	if not camera_node:
+		return
+	
+	# 停止之前的缩放动画
+	if zoom_out_tween:
+		zoom_out_tween.kill()
+	
+	zoom_out_tween = create_tween()
+	zoom_out_tween.set_ease(Tween.EASE_OUT)
+	zoom_out_tween.set_trans(Tween.TRANS_CUBIC)
+	
+	# 计算缩放持续时间（由zoom_speed控制）
+	var current_zoom = camera_node.zoom.x
+	var zoom_difference = abs(current_zoom - target_zoom)
+	var duration = zoom_difference / zoom_speed  # zoom_speed越大，缩放越快
+	
+	print("📹 [Movement] 缩放从 ", current_zoom, " 到 ", target_zoom, " 持续 ", duration, " 秒")
+	
+	# 创建缩放动画（同时处理相机和Info的缩放）
+	zoom_out_tween.tween_method(_update_camera_and_info_zoom, current_zoom, target_zoom, duration)
+
+## 更新相机和Info缩放（供Tween调用）
+func _update_camera_and_info_zoom(zoom_value: float):
+	if camera_node and is_instance_valid(camera_node):
+		camera_node.zoom = Vector2(zoom_value, zoom_value)
+		
+		# 同时反向缩放Info节点，使其保持原始大小
+		if info_node and is_instance_valid(info_node):
+			var inverse_scale = 1.0 / zoom_value
+			info_node.scale = Vector2(inverse_scale, inverse_scale)
+
+## 更新相机缩放（供Tween调用，保持向后兼容）
+func _update_camera_zoom(zoom_value: float):
+	_update_camera_and_info_zoom(zoom_value)

@@ -60,6 +60,14 @@ var is_wind_fading_out: bool = false
 # 对象类型标识（用于调试）
 var object_type: String = "Unknown"
 
+# 鼠标悬停抖动效果相关变量
+@export var hover_shake_enabled: bool = true  # 是否启用悬停抖动效果
+@export var hover_shake_intensity: float = 0.5  # 悬停抖动强度（像素，向下移动距离）
+@export var hover_shake_duration: float = 1.0  # 单次抖动持续时间（秒）
+var is_mouse_hovering: bool = false
+var hover_shake_tween: Tween
+var hover_played_this_session: bool = false  # 标记本次悬停是否已播放过抖动
+
 func _ready():
 	# 查找Camera2D（用于坐标转换）
 	camera = _find_camera2d()
@@ -284,6 +292,10 @@ func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 		return false
 
 func _process(delta):
+	# 检查鼠标悬停状态（不受gameover影响，但受interaction_disabled影响）
+	if hover_shake_enabled and not is_interaction_disabled and not is_picked:
+		_check_mouse_hover()
+	
 	if is_mouse_down and not is_picked and not is_interaction_disabled and not gameover:
 		mouse_down_timer += delta
 		
@@ -298,6 +310,8 @@ func _process(delta):
 	# 更新风抖动（风抖动不受gameover影响）
 	if is_wind_shaking:
 		_update_wind_shake(delta)
+	
+	# 悬停抖动不需要手动更新计时器，由Tween系统管理
 
 ## 开始长按交互
 func _start_hold_interaction(mouse_pos: Vector2):
@@ -345,8 +359,8 @@ func _apply_shake_animation():
 ## 重置Sprite位置和属性
 func _reset_sprite_position():
 	if sprite_node:
-		# 只有在没有风抖动时才重置位置
-		if not is_wind_shaking:
+		# 只有在没有风抖动和悬停抖动时才重置位置
+		if not is_wind_shaking and not is_mouse_hovering:
 			sprite_node.position = original_sprite_position
 		sprite_node.rotation = original_sprite_rotation
 		sprite_node.scale = original_sprite_scale
@@ -366,6 +380,10 @@ func _pick_object():
 		return
 	
 	is_picked = true
+	
+	# 停止所有抖动效果
+	is_mouse_hovering = false  # 重置悬停状态
+	_stop_hover_shake()
 	
 	# 根据对象类型播放相应的摘除音效
 	if object_type == "Fruit":
@@ -722,3 +740,65 @@ func _notify_signalbus_fruit_removed(fruit_position: Vector2):
 		print("🍎 [Pickoff] 已通知SignalBus fruit被移除: ", fruit_position)
 	else:
 		print("⚠️ [Pickoff] 未找到SignalBus或fruit_removed信号")
+
+# ==================== 鼠标悬停抖动效果 ====================
+
+## 检查鼠标悬停状态
+func _check_mouse_hover():
+	var mouse_world_pos = _get_mouse_world_position()
+	var is_hovering = _is_mouse_in_object_collision(mouse_world_pos)
+	
+	# 如果悬停状态发生变化
+	if is_hovering != is_mouse_hovering:
+		is_mouse_hovering = is_hovering
+		
+		if is_mouse_hovering:
+			# 鼠标进入，重置播放标记并播放抖动
+			hover_played_this_session = false
+			_start_hover_shake()
+		else:
+			# 鼠标离开，停止抖动
+			_stop_hover_shake()
+
+## 开始悬停抖动效果
+func _start_hover_shake():
+	if not sprite_node or not hover_shake_enabled or hover_played_this_session:
+		return
+	
+	# 标记本次悬停已播放过抖动
+	hover_played_this_session = true
+	
+	# 停止之前的悬停抖动
+	if hover_shake_tween:
+		hover_shake_tween.kill()
+	
+	# 创建向下移动动画，并保持在该位置
+	hover_shake_tween = create_tween()
+	hover_shake_tween.set_ease(Tween.EASE_OUT)
+	hover_shake_tween.set_trans(Tween.TRANS_BACK)
+	
+	# 向下移动到目标位置并停留
+	var target_position = original_sprite_position + Vector2(0, hover_shake_intensity)
+	hover_shake_tween.tween_property(sprite_node, "position", target_position, hover_shake_duration)
+
+## 停止悬停抖动效果
+func _stop_hover_shake():
+	if not sprite_node:
+		return
+	
+	# 停止当前的抖动动画
+	if hover_shake_tween:
+		hover_shake_tween.kill()
+	
+	# 创建回归原位的动画
+	hover_shake_tween = create_tween()
+	hover_shake_tween.set_ease(Tween.EASE_OUT)
+	hover_shake_tween.set_trans(Tween.TRANS_QUART)
+	
+	# 从当前位置回到原位
+	hover_shake_tween.tween_property(sprite_node, "position", original_sprite_position, hover_shake_duration * 0.3)
+	
+	# 动画完成后清理tween引用
+	hover_shake_tween.tween_callback(func(): hover_shake_tween = null)
+
+# 移除了旧的循环抖动方法，现在使用单次向下抖动

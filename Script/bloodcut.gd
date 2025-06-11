@@ -24,7 +24,7 @@ var generation_count: int = 0  # 经历过的生成次数（生成bloodcut的当
 var blooddrop_container: Node2D
 
 func _ready():
-	print("🩸 [DEBUG] bloodcut._ready() 开始 - point_index:", point_index, " visible:", visible)
+	
 	
 	# 设置计时器
 	add_child(drop_timer)
@@ -40,7 +40,7 @@ func _ready():
 	# 连接全局生成信号
 	_connect_generation_signals()
 	
-	print("🩸 [DEBUG] bloodcut._ready() 完成 - final visible:", visible)
+	
 
 ## 设置point_index（由fruits.gd调用）
 func set_point_index(index: int):
@@ -49,20 +49,20 @@ func set_point_index(index: int):
 ## 开始流血（由fruits.gd调用）
 func start_bleeding():
 	if is_bleeding:
-		print("🩸 [DEBUG] start_bleeding() 已经在流血中 - point_index:", point_index)
+		
 		return
 	
-	print("🩸 [DEBUG] start_bleeding() 开始流血 - point_index:", point_index)
+	
 	is_bleeding = true
 	
 	# 播放动画（如果有的话）
 	if animation_player and animation_player.has_animation("bleeding"):
 		animation_player.play("bleeding")
-		print("🩸 [DEBUG] 播放bleeding动画")
+		
 	
 	# 开始生成血滴
 	drop_timer.start()
-	print("🩸 [DEBUG] 血滴计时器已启动，频率:", drop_frequency)
+	
 
 ## 停止流血
 func stop_bleeding():
@@ -111,7 +111,7 @@ func _connect_generation_signals():
 
 ## fruit被摘除时的处理（由pickoff直接调用）
 func on_fruit_removed():
-	print("🩸 [DEBUG] bloodcut.on_fruit_removed() 被调用 - point_index:", point_index)
+	
 	fruit_removed = true
 	_check_bleeding_conditions()
 
@@ -144,10 +144,10 @@ func _get_fruits_manager():
 
 ## 检查是否应该开始流血
 func _check_bleeding_conditions():
-	print("🩸 [DEBUG] _check_bleeding_conditions() - point_index:", point_index, " fruit_removed:", fruit_removed, " generation_count:", generation_count)
+	
 	# 需要同时满足：fruit被摘除 && 经历过至少1次生成（生成bloodcut的当次不算）
 	if fruit_removed and generation_count >= 1:
-		print("🩸 [DEBUG] 条件满足! 显示bloodcut并开始流血 - point_index:", point_index)
+		
 		visible = true  # 显示bloodcut
 		start_bleeding()
 	else:
@@ -156,10 +156,10 @@ func _check_bleeding_conditions():
 ## 生成血滴
 func _generate_blood_drop():
 	if not is_bleeding or not blooddrop_container:
-		print("🩸 [DEBUG] _generate_blood_drop() 跳过 - is_bleeding:", is_bleeding, " blooddrop_container:", blooddrop_container != null)
+		
 		return
 	
-	print("🩸 [DEBUG] _generate_blood_drop() 生成血滴 - point_index:", point_index)
+	
 	
 	# 实例化血滴
 	var blooddrop = BLOODDROP_SCENE.instantiate()
@@ -168,7 +168,7 @@ func _generate_blood_drop():
 	var drop_position = global_position
 	blooddrop.global_position = drop_position
 	
-	print("🩸 [DEBUG] 血滴位置:", drop_position, " (与bloodcut位置完全一致)")
+	
 	
 	# 添加到容器
 	blooddrop_container.add_child(blooddrop)
@@ -205,27 +205,27 @@ func _animate_blooddrop_fall(blooddrop: Node2D):
 	if fall_time <= 0:
 		fall_time = 2.0  # 最少2秒的掉落时间
 	
-	print("🩸 [DEBUG] blooddrop掉落: 距离=", fall_distance, " 时间=", fall_time, "秒")
+	
 	
 	# 执行掉落动画，完成后自动销毁
 	tween.tween_property(blooddrop, "global_position", target_position, fall_time)
 	tween.tween_callback(func(): 
-		print("🩸 [DEBUG] blooddrop到达目标位置，销毁")
+		
 		if is_instance_valid(blooddrop):
 			blooddrop.queue_free()
 	)
 
 ## 当全局生成完成时调用（通过信号）
 func _on_global_generation_completed():
-	print("🩸 [DEBUG] bloodcut._on_global_generation_completed() 被调用 - point_index:", point_index)
+	
 	generation_count += 1
-	print("🩸 [DEBUG] 生成次数更新为:", generation_count)
+	
 	_check_bleeding_conditions()
 
 ## 当branch生成时调用（外部调用，保留兼容性）
 func on_branch_generated():
 	generation_count += 1
-	print("🩸 [DEBUG] 外部调用生成次数更新为:", generation_count)
+	
 	_check_bleeding_conditions()
 
 ## 手动触发检查（调试用）

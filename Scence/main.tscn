@@ -98,6 +98,7 @@ unique_name_in_owner = true
 
 [node name="Movement" parent="SubViewportContainer/SubViewport" instance=ExtResource("4_g1tjp")]
 position = Vector2(611, 319)
+zoom_speed = 0.01
 
 [node name="Camera2D" type="Camera2D" parent="SubViewportContainer/SubViewport/Movement"]
 

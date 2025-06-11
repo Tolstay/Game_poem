@@ -22,6 +22,7 @@ const PETAL_SCENE = preload("res://Scence/petal.tscn")
 @export var petal_count: int = 5  # petal数量
 @export var petal_radius: float = 30.0  # 实例化圆形半径
 @export var petal_auto_generate: bool = true  # 是否在场景启动时自动生成
+@export_range(-180.0, 180.0, 1.0) var petal_ring_rotation_degrees: float = - 15.0  # 花环整体旋转角度（度）
 
 # 鼠标静止检测参数
 @export_group("Mouse Detection", "mouse_")
@@ -371,10 +372,14 @@ func _calculate_petal_positions():
 	# 计算每个petal的角度间隔
 	var angle_step = 2 * PI / petal_count
 	
-	# 计算所有预定位置
+	# 将度数转换为弧度
+	var ring_rotation_radians = deg_to_rad(petal_ring_rotation_degrees)
+	
+	# 计算所有预定位置（包含整体旋转）
 	for i in range(petal_count):
-		var angle = i * angle_step
-		var offset = Vector2(cos(angle), sin(angle)) * petal_radius
+		var base_angle = i * angle_step
+		var final_angle = base_angle + ring_rotation_radians  # 添加整体旋转
+		var offset = Vector2(cos(final_angle), sin(final_angle)) * petal_radius
 		var petal_pos = center_pos + offset
 		petal_positions.append(petal_pos)
 
@@ -501,3 +506,45 @@ func set_gameover(state: bool):
 ## 获取游戏结束状态（供外部调用）
 func is_gameover() -> bool:
 	return gameover
+
+## 更新花环旋转角度（供运行时调用）
+func update_petal_ring_rotation(new_rotation_degrees: float):
+	petal_ring_rotation_degrees = new_rotation_degrees
+	
+	# 重新计算所有petal位置
+	_calculate_petal_positions()
+	
+	# 更新现有petal的位置
+	_update_existing_petal_positions()
+	
+	print("🌸 [Main] 花环旋转已更新为: ", new_rotation_degrees, "度")
+
+## 更新现有petal的位置到新计算的位置
+func _update_existing_petal_positions():
+	for i in range(petal_count):
+		if i >= petal_positions.size():
+			continue
+			
+		var group_name = PETAL_GROUP_PREFIX + str(i)
+		var petals_at_position = get_tree().get_nodes_in_group(group_name)
+		
+		for petal in petals_at_position:
+			if is_instance_valid(petal) and petal.is_inside_tree():
+				var new_position = petal_positions[i]
+				var center_pos = first_point.global_position
+				
+				# 使用Tween创建平滑的位置过渡
+				var position_tween = create_tween()
+				position_tween.tween_property(petal, "global_position", new_position, 0.5)
+				position_tween.set_ease(Tween.EASE_OUT)
+				position_tween.set_trans(Tween.TRANS_CUBIC)
+				
+				# 同时更新petal的sprite旋转
+				var sprite2d = petal.get_node("Sprite2D")
+				if sprite2d:
+					var direction_to_center = (center_pos - new_position).normalized()
+					var new_rotation = direction_to_center.angle() + PI/2 + PI
+					var rotation_tween = create_tween()
+					rotation_tween.tween_property(sprite2d, "rotation", new_rotation, 0.5)
+					rotation_tween.set_ease(Tween.EASE_OUT)
+					rotation_tween.set_trans(Tween.TRANS_CUBIC)

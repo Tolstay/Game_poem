@@ -935,3 +935,7 @@ func _notify_fruit_generated(fruit_position: Vector2):
 		print("🍎 [Fruits] 已通知SignalBus fruit生成: ", fruit_position)
 	else:
 		print("⚠️ [Fruits] 未找到SignalBus或fruit_generated信号")
+
+## 获取所有点的位置（供Movement脚本调用）
+func get_all_point_positions() -> Array[Vector2]:
+	return point_positions.duplicate()
