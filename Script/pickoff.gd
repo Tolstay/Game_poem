@@ -292,8 +292,8 @@ func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 		return false
 
 func _process(delta):
-	# 检查鼠标悬停状态（不受gameover影响，但受interaction_disabled影响）
-	if hover_shake_enabled and not is_interaction_disabled and not is_picked:
+	# 检查鼠标悬停状态（受gameover和interaction_disabled影响）
+	if hover_shake_enabled and not is_interaction_disabled and not is_picked and not gameover:
 		_check_mouse_hover()
 	
 	if is_mouse_down and not is_picked and not is_interaction_disabled and not gameover:
@@ -315,6 +315,8 @@ func _process(delta):
 
 ## 开始长按交互
 func _start_hold_interaction(mouse_pos: Vector2):
+	if gameover:
+		return
 	is_mouse_down = true
 	mouse_down_timer = 0.0
 	mouse_down_position = mouse_pos

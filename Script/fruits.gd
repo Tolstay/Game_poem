@@ -527,6 +527,9 @@ func _instantiate_fruits_at_endpoint_nodes():
 			else:
 				add_child(fruit)
 			
+			# 将fruit添加到"fruits"组，供SignalBus使用
+			fruit.add_to_group("fruits")
+			
 			points_with_fruit[i] = true  # 标记为已实例化果实
 			
 			# 通知SignalBus fruit已生成
@@ -807,6 +810,9 @@ func generate_fruit_at_point(point_index: int):
 		fruit_layer.add_child(fruit)
 	else:
 		add_child(fruit)
+	
+	# 将fruit添加到"fruits"组，供SignalBus使用
+	fruit.add_to_group("fruits")
 	
 	# 标记为已生成fruit
 	while points_with_fruit.size() <= point_index:

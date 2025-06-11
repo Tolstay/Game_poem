@@ -27,6 +27,7 @@ var heart_coordinate: Vector2 = Vector2.ZERO  # Heart坐标（永不移除）
 var petal_pick_count: int = 0
 var pick_number: int = 0
 var first_wind = true
+var first_pick = true
 
 # 使用现有的计时器节点
 @onready var windrises_timer: Timer = %Windrises
@@ -61,10 +62,9 @@ func _ready():
 	await get_tree().create_timer(0.5).timeout
 	info.add_theme_font_size_override("font_size", 10)
 	_start_typing_effect("Recall a decision that\nyou’ve been putting off")
-	await get_tree().create_timer(6.0).timeout
+	await get_tree().create_timer(8.0).timeout
 	_start_backspace_effect()
-	await get_tree().create_timer(1.0).timeout
-	info.add_theme_font_size_override("font_size", 10)
+	await get_tree().create_timer(1.5).timeout
 	_start_typing_effect("long press to remove")
 	
 	
@@ -164,6 +164,10 @@ func on_petal_picked():
 		await get_tree().create_timer(2.5).timeout
 		info.add_theme_font_size_override("font_size", 20)
 		_start_typing_effect("Game Over")
+		await get_tree().create_timer(5.0).timeout
+		_start_backspace_effect()
+		await get_tree().create_timer(2.5).timeout
+		_start_typing_effect("First Move")
 
 ## 获取当前应显示的文本
 func get_current_petal_text() -> String:
