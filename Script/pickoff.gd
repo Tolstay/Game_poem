@@ -68,6 +68,9 @@ var is_mouse_hovering: bool = false
 var hover_shake_tween: Tween
 var hover_played_this_session: bool = false  # 标记本次悬停是否已播放过抖动
 
+# 文本显示控制
+var textdisplay_node: Node2D
+
 func _ready():
 	# 查找Camera2D（用于坐标转换）
 	camera = _find_camera2d()
@@ -86,12 +89,10 @@ func _ready():
 		if petal_pickoff_audio:
 			break
 	
-
-	
 	# 连接signalbus的disable_pickoff_interaction信号
 	call_deferred("_connect_signalbus_signals")
-	# 自动查找父层级中的RigidBody2D节点
 	
+	# 自动查找父层级中的RigidBody2D节点
 	pickable_object = _find_parent_rigidbody()
 	if not pickable_object:
 		return
@@ -110,6 +111,9 @@ func _ready():
 		original_sprite_position = sprite_node.position
 		original_sprite_rotation = sprite_node.rotation
 		original_sprite_scale = sprite_node.scale
+	
+	# 设置textdisplay控制
+	call_deferred("_setup_textdisplay_control")
 
 ## 连接signalbus的信号
 func _connect_signalbus_signals():
@@ -126,9 +130,62 @@ func _connect_signalbus_signals():
 		if not signalbus.able_pickoff_interaction.is_connected(_on_able_pickoff_interaction):
 			signalbus.able_pickoff_interaction.connect(_on_able_pickoff_interaction)
 
+## 设置textdisplay控制
+func _setup_textdisplay_control():
+	textdisplay_node = _find_textdisplay_node()
+	if textdisplay_node:
+		_set_textdisplay_content()
+
+## 查找textdisplay节点
+func _find_textdisplay_node() -> Node2D:
+	# 在同级Logic节点下查找textdisplay节点
+	var logic_parent = get_parent()  # Logic节点
+	if logic_parent:
+		for child in logic_parent.get_children():
+			if child.name == "textdisplay":
+				return child
+	return null
+
+## 根据对象类型设置textdisplay内容
+func _set_textdisplay_content():
+	if not textdisplay_node or not textdisplay_node.has_method("set_display_text"):
+		return
+	
+	match object_type:
+		"Fruit":
+			textdisplay_node.set_display_text("or")
+		"Petal":
+			# 从signalbus获取动态文本
+			var signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
+			if signalbus and signalbus.has_method("get_current_petal_text"):
+				textdisplay_node.set_display_text(signalbus.get_current_petal_text())
+			else:
+				textdisplay_node.set_display_text("yes")  # 默认文本
+		_:
+			textdisplay_node.set_display_text("unknown")
+
+## 获取显示文本（供textdisplay调用）
+func get_display_text() -> String:
+	match object_type:
+		"Fruit":
+			return "or..."
+		"Petal":
+			# 从signalbus获取动态文本
+			var signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
+			if signalbus and signalbus.has_method("get_current_petal_text"):
+				return signalbus.get_current_petal_text()
+			else:
+				return "yes"  # 默认文本
+		_:
+			return "unknown"
+
 ## 响应禁用交互信号
 func _on_disable_pickoff_interaction():
 	is_interaction_disabled = true
+	
+	# 同步禁用textdisplay
+	if textdisplay_node and textdisplay_node.has_method("_on_disable_pickoff_interaction"):
+		textdisplay_node._on_disable_pickoff_interaction()
 	
 	# 通过SignalBus发送风抖动信号（只有第一个接收到的对象发送，避免重复）
 	if wind_shake_enabled:
@@ -139,12 +196,14 @@ func _on_disable_pickoff_interaction():
 		# 启动本地风抖动效果
 		_start_wind_shake()
 
-	
 func _on_able_pickoff_interaction():
 	is_interaction_disabled = false
 	
+	# 同步启用textdisplay
+	if textdisplay_node and textdisplay_node.has_method("_on_able_pickoff_interaction"):
+		textdisplay_node._on_able_pickoff_interaction()
+	
 	# 不再通过信号停止风抖动，完全依赖duration参数
-
 
 ## 检查交互是否被禁用（供外部调用）
 func is_interaction_enabled() -> bool:
@@ -387,6 +446,10 @@ func _pick_object():
 	is_mouse_hovering = false  # 重置悬停状态
 	_stop_hover_shake()
 	
+	# 通知textdisplay父对象已被摘取
+	if textdisplay_node and textdisplay_node.has_method("notify_parent_picked"):
+		textdisplay_node.notify_parent_picked()
+	
 	# 根据对象类型播放相应的摘除音效
 	if object_type == "Fruit":
 		if fruit_pickoff_audio:
@@ -412,6 +475,9 @@ func _pick_object():
 		var signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
 		if signalbus and signalbus.has_method("on_petal_picked"):
 			signalbus.on_petal_picked()
+		
+		# 更新其他petal的文本显示
+		_update_other_petal_texts()
 	
 	# 可以在这里添加特定对象类型的额外行为
 	_handle_object_specific_pickup_behavior()
@@ -804,3 +870,16 @@ func _stop_hover_shake():
 	hover_shake_tween.tween_callback(func(): hover_shake_tween = null)
 
 # 移除了旧的循环抖动方法，现在使用单次向下抖动
+
+## 更新其他petal的文本显示
+func _update_other_petal_texts():
+	# 查找所有petal的pickoff节点并更新它们的textdisplay
+	for i in range(20):  # 假设最多20个位置
+		var group_name = "petal_position_" + str(i)
+		var petals_at_position = get_tree().get_nodes_in_group(group_name)
+		
+		for petal in petals_at_position:
+			if is_instance_valid(petal) and petal.is_inside_tree():
+				var pickoff_node = petal.find_child("pickoff", true, false)
+				if pickoff_node and pickoff_node != self and pickoff_node.has_method("_set_textdisplay_content"):
+					pickoff_node._set_textdisplay_content()

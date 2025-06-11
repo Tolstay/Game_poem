@@ -61,12 +61,13 @@ func _ready():
 	
 	# 延迟添加heart坐标（等待场景完全加载）
 	call_deferred("_add_heart_coordinate")
-	
+	await get_tree().process_frame
+	call_deferred("emit_disable_signal")
 	
 	# 创建打字机计时器
 	_setup_typing_timer()
 	await get_tree().create_timer(0.5).timeout
-	disable_pickoff_interaction.emit() #黑屏时禁用交互
+	
 	info.add_theme_font_size_override("font_size", 10)
 	_start_typing_effect("Recall a decision that\nyou've been putting off")
 	if gameover:
@@ -84,7 +85,10 @@ func _ready():
 	await get_tree().create_timer(1.5).timeout
 	_start_typing_effect("long press to pick things")
 	
+func emit_disable_signal():
+	disable_pickoff_interaction.emit()
 	
+
 func _setup_typing_timer():
 	typing_timer = Timer.new()
 	typing_timer.wait_time = typing_speed

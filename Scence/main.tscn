@@ -11,7 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://b664u2154hil1" path="res://Asset/heart.png" id="8_01llu"]
 [ext_resource type="Script" uid="uid://8he5irjtsrxn" path="res://Script/curtain.gd" id="10_iow1c"]
 [ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Script/signalbus.gd" id="10_xpfmo"]
-[ext_resource type="FontFile" uid="uid://ccsexts6p7q8c" path="res://fonts/Pixelify_Sans/static/PixelifySans-Regular.ttf" id="11_rxihw"]
+[ext_resource type="FontFile" uid="uid://sylpq76gfxru" path="res://fonts/Pixelify_Sans/static/PixelifySans-Bold.ttf" id="11_rxihw"]
 [ext_resource type="AudioStream" uid="uid://c0qyan1x2ndtk" path="res://Sound/windrises.wav" id="12_01llu"]
 [ext_resource type="Script" uid="uid://dcshdjw8jnxlf" path="res://Scence/opening.gd" id="12_rxihw"]
 [ext_resource type="AudioStream" uid="uid://xd6njoxuguf8" path="res://Sound/night-ambience.mp3" id="13_alkcg"]

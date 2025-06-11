@@ -10,10 +10,12 @@ extends Node2D
 var parent_rigidbody: RigidBody2D
 var collision_shape: CollisionShape2D
 var camera: Camera2D
+var pickoff_controller: Node2D  # 新增：控制此textdisplay的pickoff节点
 
 # 状态控制
 var is_mouse_hovering: bool = false
 var is_parent_picked: bool = false
+var is_interaction_disabled: bool = false  # 新增：交互禁用状态
 
 # 打字机效果相关
 @export var typing_speed: float = 0.05  # 每个字符的显示间隔（秒）
@@ -33,11 +35,16 @@ func _ready():
 	# 查找碰撞形状
 	collision_shape = _find_collision_shape(parent_rigidbody)
 	if not collision_shape:
-
 		return
 	
 	# 查找Camera2D
 	camera = _find_camera2d()
+	
+	# 查找控制此textdisplay的pickoff节点
+	pickoff_controller = _find_pickoff_controller()
+	
+	# 连接signalbus的交互控制信号
+	call_deferred("_connect_interaction_signals")
 	
 	# 初始隐藏文本
 	label.visible = false
@@ -48,8 +55,8 @@ func _ready():
 		label.custom_minimum_size.x = 100  # 固定宽度80像素
 		label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	
-	# 从SignalBus获取初始文本内容
-	_update_text_from_signalbus()
+	# 从SignalBus或pickoff获取初始文本内容
+	_update_text_content()
 	
 	# 创建打字机计时器
 	typing_timer = Timer.new()
@@ -58,8 +65,8 @@ func _ready():
 	add_child(typing_timer)
 
 func _process(_delta):
-	# 检测鼠标悬停（只在对象未被摘取时）
-	if not is_parent_picked and parent_rigidbody and collision_shape:
+	# 检测鼠标悬停（只在对象未被摘取且交互未被禁用时）
+	if not is_parent_picked and not is_interaction_disabled and parent_rigidbody and collision_shape:
 		_check_mouse_hover()
 
 ## 查找父层级中的RigidBody2D节点
@@ -158,11 +165,44 @@ func _is_mouse_in_object_collision(mouse_pos: Vector2) -> bool:
 	else:
 		return false
 
+## 查找控制此textdisplay的pickoff节点
+func _find_pickoff_controller() -> Node2D:
+	# 在同级Logic节点下查找pickoff节点
+	var logic_parent = get_parent()  # Logic节点
+	if logic_parent:
+		for child in logic_parent.get_children():
+			if child.name == "pickoff":
+				return child
+	return null
+
+## 连接signalbus的交互控制信号
+func _connect_interaction_signals():
+	var signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
+	
+	if signalbus and signalbus.has_signal("disable_pickoff_interaction"):
+		if not signalbus.disable_pickoff_interaction.is_connected(_on_disable_pickoff_interaction):
+			signalbus.disable_pickoff_interaction.connect(_on_disable_pickoff_interaction)
+	
+	if signalbus and signalbus.has_signal("able_pickoff_interaction"):
+		if not signalbus.able_pickoff_interaction.is_connected(_on_able_pickoff_interaction):
+			signalbus.able_pickoff_interaction.connect(_on_able_pickoff_interaction)
+
+## 响应禁用交互信号
+func _on_disable_pickoff_interaction():
+	is_interaction_disabled = true
+	# 立即隐藏文本
+	_hide_text()
+
+## 响应启用交互信号
+func _on_able_pickoff_interaction():
+	is_interaction_disabled = false
+	# 不自动显示文本，等待鼠标悬停
+
 ## 显示文本（开始打字机效果）
 func _show_text():
-	if label and not is_typing and not is_backspacing:
+	if label and not is_typing and not is_backspacing and not is_interaction_disabled:
 		# 每次显示前都更新文本内容
-		_update_text_from_signalbus()
+		_update_text_content()
 		_update_text_position()
 		label.visible = true
 		_start_typing_effect()
@@ -273,15 +313,14 @@ func _update_text_position():
 	# Label会跟随textdisplay节点，而textdisplay在Logic下，Logic在petal下
 	label.position = Vector2(10, -15)  # 在对象上方偏左显示
 
-## 设置文本内容（外部调用）
-func set_text(text: String):
-	full_text = text
-	if label:
-		# 如果正在显示，重新开始打字机效果
-		if label.visible and is_mouse_hovering:
-			_start_typing_effect()
-		else:
-			label.text = ""
+## 从SignalBus或pickoff更新文本内容
+func _update_text_content():
+	# 优先从pickoff控制器获取文本
+	if pickoff_controller and pickoff_controller.has_method("get_display_text"):
+		full_text = pickoff_controller.get_display_text()
+	else:
+		# 降级到从SignalBus获取（保持向后兼容）
+		_update_text_from_signalbus()
 
 ## 从SignalBus更新文本内容
 func _update_text_from_signalbus():
@@ -296,3 +335,10 @@ func notify_parent_picked():
 	is_parent_picked = true
 	_stop_typing_effect()
 	_stop_backspace_effect()
+
+## 设置显示文本（供pickoff调用）
+func set_display_text(text: String):
+	full_text = text
+	# 如果当前正在显示且鼠标悬停，重新开始打字机效果
+	if label and label.visible and is_mouse_hovering:
+		_start_typing_effect()
