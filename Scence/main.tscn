@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=22 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
 [ext_resource type="Script" uid="uid://23uc0ufxq2kx" path="res://Script/main.gd" id="1_k2005"]
@@ -11,8 +11,9 @@
 [ext_resource type="Texture2D" uid="uid://b664u2154hil1" path="res://Asset/heart.png" id="8_01llu"]
 [ext_resource type="Script" uid="uid://8he5irjtsrxn" path="res://Script/curtain.gd" id="10_iow1c"]
 [ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Script/signalbus.gd" id="10_xpfmo"]
-[ext_resource type="FontFile" uid="uid://5s6klcknipcm" path="res://fonts/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf" id="11_wlf6e"]
+[ext_resource type="FontFile" uid="uid://ccsexts6p7q8c" path="res://fonts/Pixelify_Sans/static/PixelifySans-Regular.ttf" id="11_rxihw"]
 [ext_resource type="AudioStream" uid="uid://c0qyan1x2ndtk" path="res://Sound/windrises.wav" id="12_01llu"]
+[ext_resource type="Script" uid="uid://dcshdjw8jnxlf" path="res://Scence/opening.gd" id="12_rxihw"]
 [ext_resource type="AudioStream" uid="uid://xd6njoxuguf8" path="res://Sound/night-ambience.mp3" id="13_alkcg"]
 [ext_resource type="Script" uid="uid://cl0855todhx5u" path="res://Script/wind_manager.gd" id="14_yjbia"]
 [ext_resource type="AudioStream" uid="uid://drosku7ykeacp" path="res://Sound/ending.mp3" id="16_rxihw"]
@@ -109,8 +110,17 @@ texture_filter = 1
 offset_right = 40.0
 offset_bottom = 23.0
 theme_override_colors/font_color = Color(1, 0, 1, 1)
-theme_override_fonts/font = ExtResource("11_wlf6e")
+theme_override_fonts/font = ExtResource("11_rxihw")
 theme_override_font_sizes/font_size = 10
+
+[node name="opening" type="ColorRect" parent="SubViewportContainer/SubViewport/Movement"]
+z_index = 99
+offset_left = -150.0
+offset_top = -150.0
+offset_right = 150.0
+offset_bottom = 150.0
+color = Color(0, 0, 0, 1)
+script = ExtResource("12_rxihw")
 
 [node name="Signalbus" type="Node" parent="."]
 unique_name_in_owner = true

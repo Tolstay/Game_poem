@@ -14,7 +14,6 @@ config/name="FirstMoves"
 config/tags=PackedStringArray("works")
 run/main_scene="res://Scence/main.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
-config/icon="res://icon.svg"
 
 [display]
 
@@ -23,6 +22,7 @@ window/size/viewport_height=192
 window/size/window_width_override=1280
 window/size/window_height_override=960
 window/stretch/mode="viewport"
+window/stretch/scale_mode="integer"
 
 [editor_plugins]
 

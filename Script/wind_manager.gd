@@ -30,10 +30,10 @@ var signalbus: Node
 func _ready():
 	# 查找SignalBus并连接信号
 	signalbus = get_tree().current_scene.find_child("Signalbus", true, false)
-	if signalbus:
-		if signalbus.has_signal("wind_shake_start"):
-			signalbus.wind_shake_start.connect(_on_wind_shake_start)
-		# 注意：不再连接wind_shake_stop信号，完全依赖duration参数控制
+	# 注意：由于signalbus.gd中的风抖动信号已被注释，此处也暂时禁用
+	# if signalbus:
+	#	if signalbus.has_signal("wind_shake_start"):
+	#		signalbus.wind_shake_start.connect(_on_wind_shake_start)
 	
 	# 查找Fruits控制器
 	fruits_controller = _find_fruits_controller()

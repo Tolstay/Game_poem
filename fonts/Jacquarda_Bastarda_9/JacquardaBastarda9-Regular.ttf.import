@@ -13,10 +13,10 @@ dest_files=["res://.godot/imported/JacquardaBastarda9-Regular.ttf-3cab9e92c9037d
 [params]
 
 Rendering=null
-antialiasing=1
+antialiasing=0
 generate_mipmaps=false
 disable_embedded_bitmaps=true
-multichannel_signed_distance_field=false
+multichannel_signed_distance_field=true
 msdf_pixel_range=8
 msdf_size=48
 allow_system_fallback=true

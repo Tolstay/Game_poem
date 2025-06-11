@@ -216,8 +216,6 @@ func _find_info_node() -> Label:
 
 ## 获取所有branchpoint的边界
 func _get_all_branch_points_bounds() -> Rect2:
-	var all_points: Array[Vector2] = []
-	
 	# 通过fruits脚本获取所有点的位置
 	var main_scene = get_tree().current_scene
 	var subviewport_container = main_scene.get_node_or_null("SubViewportContainer")

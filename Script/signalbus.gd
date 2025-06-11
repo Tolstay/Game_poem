@@ -9,8 +9,9 @@ signal disable_pickoff_interaction
 signal able_pickoff_interaction
 
 # 风抖动信号（由wind_manager连接和使用，在静止超时时触发）
-signal wind_shake_start(duration: float, intensity: float, frequency: float, horizontal_bias: float, randomness: float)
-signal wind_shake_stop  # 风抖动停止信号
+# 注意：这些信号当前未被使用，暂时注释掉
+# signal wind_shake_start(duration: float, intensity: float, frequency: float, horizontal_bias: float, randomness: float)
+# signal wind_shake_stop  # 风抖动停止信号
 
 # Fruit坐标管理
 signal fruit_generated(position: Vector2)
@@ -50,6 +51,8 @@ var is_backspacing: bool = false
 
 func _ready():
 	# 添加到signalbus组
+	
+	
 	add_to_group("signalbus")
 	
 	# 连接fruit管理信号
@@ -63,20 +66,23 @@ func _ready():
 	# 创建打字机计时器
 	_setup_typing_timer()
 	await get_tree().create_timer(0.5).timeout
+	disable_pickoff_interaction.emit() #黑屏时禁用交互
 	info.add_theme_font_size_override("font_size", 10)
-	_start_typing_effect("Recall a decision that\nyou’ve been putting off")
+	_start_typing_effect("Recall a decision that\nyou've been putting off")
 	if gameover:
 		return
 	if first_pick == false:
 		return
 	await get_tree().create_timer(8.0).timeout
 	_start_backspace_effect()
+	able_pickoff_interaction.emit() #开场结束启用交互
+	
 	if gameover:
 		return
 	if first_pick == false:
 		return
 	await get_tree().create_timer(1.5).timeout
-	_start_typing_effect("long press to remove")
+	_start_typing_effect("long press to pick things")
 	
 	
 func _setup_typing_timer():
@@ -343,8 +349,9 @@ func _start_camera_fall():
 	var fall_distance = 1000.0  # 每次下落的距离
 	var fall_duration = fall_distance / fall_speed  # 计算下落时间
 	
-	# 开始无限下落动画
-	camera_tween.tween_method(_move_camera_down.bind(camera_node), 0.0, fall_distance, fall_duration)
+	# 开始无限下落动画 - 修复tween_method调用
+	var start_y = camera_node.global_position.y
+	camera_tween.tween_method(func(offset: float): _move_camera_down(camera_node, offset), 0.0, fall_distance, fall_duration)
 
 ## 查找Camera2D节点
 func _find_camera_node() -> Camera2D:
@@ -369,7 +376,7 @@ func _find_camera_node() -> Camera2D:
 ## 移动相机向下（供Tween调用）
 func _move_camera_down(camera: Camera2D, offset: float):
 	if camera and is_instance_valid(camera):
-		camera.global_position.y += offset
+		camera.global_position.y = camera.global_position.y + offset
 
 ## 检测剩余petal数量
 func _check_remaining_petals() -> int:
