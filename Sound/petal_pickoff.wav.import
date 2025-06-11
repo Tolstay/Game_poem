@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://dbciy4lhcygyb"
-path="res://.godot/imported/pickoff4.wav-e0e8d794d5177a6b6121e17d5aa14843.sample"
+path="res://.godot/imported/petal_pickoff.wav-fd1d68804ad424d29a0d23f9de9d0fb7.sample"
 
 [deps]
 
-source_file="res://Sound/pickoff4.wav"
-dest_files=["res://.godot/imported/pickoff4.wav-e0e8d794d5177a6b6121e17d5aa14843.sample"]
+source_file="res://Sound/petal_pickoff.wav"
+dest_files=["res://.godot/imported/petal_pickoff.wav-fd1d68804ad424d29a0d23f9de9d0fb7.sample"]
 
 [params]
 

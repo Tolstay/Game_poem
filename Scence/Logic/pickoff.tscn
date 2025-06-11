@@ -1,18 +1,12 @@
-[gd_scene load_steps=4 format=3 uid="uid://bfj7ark2vtjx3"]
+[gd_scene load_steps=3 format=3 uid="uid://bfj7ark2vtjx3"]
 
 [ext_resource type="Script" uid="uid://b2wqi6y35dpox" path="res://Script/pickoff.gd" id="1_1n5od"]
-[ext_resource type="AudioStream" uid="uid://dmsp3qk33ymca" path="res://Sound/pickoffsound.wav" id="2_rdfhq"]
-[ext_resource type="AudioStream" uid="uid://dbciy4lhcygyb" path="res://Sound/pickoff4.wav" id="3_syicv"]
+[ext_resource type="AudioStream" uid="uid://dbciy4lhcygyb" path="res://Sound/petal_pickoff.wav" id="3_syicv"]
 
 [node name="pickoff" type="Node2D"]
 script = ExtResource("1_1n5od")
 
 [node name="petal_pickoff" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("3_syicv")
-volume_db = -0.3
+volume_db = 0.5
 pitch_scale = 2.0
-
-[node name="fruit_pickoff" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("2_rdfhq")
-volume_db = -1.0
-pitch_scale = 2.5

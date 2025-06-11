@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3 uid="uid://did5yhspki1ff"]
 
-[ext_resource type="Texture2D" uid="uid://3jdvj4j1gqjo" path="res://Asset/petal4.png" id="1_6ly5q"]
+[ext_resource type="Texture2D" uid="uid://3jdvj4j1gqjo" path="res://Asset/petal.png" id="1_6ly5q"]
 [ext_resource type="PackedScene" uid="uid://bfj7ark2vtjx3" path="res://Scence/Logic/pickoff.tscn" id="2_6ly5q"]
 [ext_resource type="PackedScene" uid="uid://b7uhkvkjmxp5k" path="res://Scence/Logic/textdisplay.tscn" id="3_6ly5q"]
 

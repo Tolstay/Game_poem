@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://l8mdqy2dsvvv"]
 
-[ext_resource type="Texture2D" uid="uid://dx0olos7iwh2v" path="res://Asset/fruit6.png" id="1_ceewg"]
+[ext_resource type="Texture2D" uid="uid://dx0olos7iwh2v" path="res://Asset/fruit.png" id="1_ceewg"]
 [ext_resource type="PackedScene" uid="uid://bfj7ark2vtjx3" path="res://Scence/Logic/pickoff.tscn" id="2_ceewg"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_ejhox"]

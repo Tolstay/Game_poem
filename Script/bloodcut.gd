@@ -150,8 +150,6 @@ func _check_bleeding_conditions():
 		
 		visible = true  # 显示bloodcut
 		start_bleeding()
-	else:
-		print("🩸 [DEBUG] 条件不满足 - point_index:", point_index)
 
 ## 生成血滴
 func _generate_blood_drop():

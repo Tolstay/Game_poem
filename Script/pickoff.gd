@@ -62,8 +62,8 @@ var object_type: String = "Unknown"
 
 # 鼠标悬停抖动效果相关变量
 @export var hover_shake_enabled: bool = true  # 是否启用悬停抖动效果
-@export var hover_shake_intensity: float = 0.5  # 悬停抖动强度（像素，向下移动距离）
-@export var hover_shake_duration: float = 1.0  # 单次抖动持续时间（秒）
+@export var hover_shake_intensity: float = 1.0  # 悬停抖动强度（像素，向下移动距离）
+@export var hover_shake_duration: float = 0.8  # 单次抖动持续时间（秒）
 var is_mouse_hovering: bool = false
 var hover_shake_tween: Tween
 var hover_played_this_session: bool = false  # 标记本次悬停是否已播放过抖动

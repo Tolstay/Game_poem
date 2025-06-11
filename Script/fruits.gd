@@ -738,7 +738,7 @@ func generate_bloodcut_at_point(point_index: int):
 	var point_position = point_positions[point_index]
 	var bloodcut = BLOODCUT_SCENE.instantiate()
 	bloodcut.global_position = point_position
-	print("🩸 [DEBUG] generate_bloodcut_at_point 生成bloodcut在位置 ", point_position, " visible初始状态: ", bloodcut.visible)
+
 	
 	# 设置bloodcut的point_index属性
 	if bloodcut.has_method("set_point_index"):
@@ -750,7 +750,7 @@ func generate_bloodcut_at_point(point_index: int):
 	else:
 		add_child(bloodcut)
 	
-	print("🩸 [DEBUG] generate_bloodcut_at_point bloodcut添加到场景后 visible状态: ", bloodcut.visible)
+
 	
 	# 使用延迟调用确保bloodcut在生成帧的最后设置为不可见
 	call_deferred("_set_bloodcut_invisible", bloodcut)
@@ -766,9 +766,9 @@ func generate_bloodcut_at_point(point_index: int):
 ## 延迟设置bloodcut为不可见（确保在生成帧的最后执行）
 func _set_bloodcut_invisible(bloodcut: Node2D):
 	if bloodcut and is_instance_valid(bloodcut):
-		print("🩸 [DEBUG] _set_bloodcut_invisible 延迟设置bloodcut不可见 - 当前visible:", bloodcut.visible)
+		
 		bloodcut.visible = false
-		print("🩸 [DEBUG] _set_bloodcut_invisible 设置完成 - 现在visible:", bloodcut.visible)
+		
 
 ## 在指定点位生成fruit（供main调用）
 func generate_fruit_at_point(point_index: int):

@@ -28,6 +28,12 @@ const PETAL_SCENE = preload("res://Scence/petal.tscn")
 @export_group("Mouse Detection", "mouse_")
 @export var mouse_still_time: float = 2.0  # 鼠标静止多少秒后触发
 
+# 背景音乐控制参数
+@export_group("Background Music", "bgm_")
+@export var bgm_enabled: bool = true  # 是否启用背景音乐
+@export_range(0.0, 1.0, 0.1) var bgm_volume: float = 1.0  # 背景音乐音量
+@export var bgm_loop_check_interval: float = 5.0  # 循环检查间隔（秒）
+
 # 重要节点引用
 var first_point: Node2D
 var sub_viewport: SubViewport
@@ -59,6 +65,9 @@ var is_mouse_still: bool = false
 
 # 游戏状态控制
 var gameover: bool = false  # 游戏结束状态，禁用所有交互
+
+# 背景音乐检查计时器
+var bgm_check_timer: float = 0.0
 
 # ==================== 输入处理 ====================
 
@@ -279,9 +288,24 @@ func _ready():
 	last_mouse_position = get_global_mouse_position()
 	print("🖱️ [Main] 鼠标位置初始化完成")
 	
-	if globalbgm:
+	if globalbgm and bgm_enabled:
+		# 设置音量
+		globalbgm.volume_db = linear_to_db(bgm_volume)
+		
+		# 连接音频播放完成信号，确保循环播放
+		if not globalbgm.finished.is_connected(_on_globalbgm_finished):
+			globalbgm.finished.connect(_on_globalbgm_finished)
+		
+		# 确保音频资源设置为循环播放
+		if globalbgm.stream and globalbgm.stream.has_method("set_loop"):
+			globalbgm.stream.set_loop(true)
+			print("🎵 [Main] 音频资源已设置为循环模式")
+		
 		globalbgm.play()
-		print("🎵 [Main] 背景音乐开始播放")
+		print("🎵 [Main] 背景音乐开始播放，已设置自动循环，音量: ", bgm_volume)
+	elif globalbgm and not bgm_enabled:
+		globalbgm.stop()
+		print("🔇 [Main] 背景音乐已禁用")
 	else:
 		print("⚠️ [Main] 警告：未找到背景音乐")
 	
@@ -291,6 +315,9 @@ func _process(delta):
 	# 如果游戏结束，禁用鼠标检测
 	if not gameover:
 		_update_mouse_detection(delta)
+	
+	# 定期监测背景音乐状态，确保一直播放
+	_check_background_music(delta)
 
 ## 更新鼠标静止检测
 func _update_mouse_detection(delta: float):
@@ -495,7 +522,7 @@ func _create_wind_manager():
 	# 添加到场景
 	add_child(wind_manager)
 	
-	print("WindManager已创建并添加到main场景")
+
 
 ## 设置游戏结束状态（供外部调用）
 func set_gameover(state: bool):
@@ -517,7 +544,7 @@ func update_petal_ring_rotation(new_rotation_degrees: float):
 	# 更新现有petal的位置
 	_update_existing_petal_positions()
 	
-	print("🌸 [Main] 花环旋转已更新为: ", new_rotation_degrees, "度")
+
 
 ## 更新现有petal的位置到新计算的位置
 func _update_existing_petal_positions():
@@ -548,3 +575,43 @@ func _update_existing_petal_positions():
 					rotation_tween.tween_property(sprite2d, "rotation", new_rotation, 0.5)
 					rotation_tween.set_ease(Tween.EASE_OUT)
 					rotation_tween.set_trans(Tween.TRANS_CUBIC)
+
+## 监测背景音乐状态
+func _check_background_music(delta: float):
+	if not bgm_enabled or not globalbgm:
+		return
+	
+	# 使用计时器减少检查频率，提高性能
+	bgm_check_timer += delta
+	if bgm_check_timer >= bgm_loop_check_interval:
+		bgm_check_timer = 0.0
+		
+		if not globalbgm.playing:
+			# 如果背景音乐停止了，重新播放
+			globalbgm.play()
+
+
+## 背景音乐播放完成时的回调
+func _on_globalbgm_finished():
+	if globalbgm and bgm_enabled:
+		# 立即重新播放，实现无缝循环
+		globalbgm.play()
+
+
+## 动态控制背景音乐（供外部调用）
+func set_background_music_enabled(enabled: bool):
+	bgm_enabled = enabled
+	if globalbgm:
+		if enabled:
+			if not globalbgm.playing:
+				globalbgm.play()
+
+		else:
+			globalbgm.stop()
+
+
+## 动态调整背景音乐音量（供外部调用）
+func set_background_music_volume(volume: float):
+	bgm_volume = clamp(volume, 0.0, 1.0)
+	if globalbgm:
+		globalbgm.volume_db = linear_to_db(bgm_volume)

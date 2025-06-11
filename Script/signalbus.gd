@@ -167,23 +167,12 @@ func on_petal_picked():
 
 ## 获取当前应显示的文本
 func get_current_petal_text() -> String:
-	# 根据摘除计数生成文本
-	# count=0: yes, count=1: no, count=2: yesyes, count=3: nono, ...
-	var base_text: String
-	var repeat_count: int
-	
+	# 根据摘除计数简单交替显示yes或no
+	# count=0: yes, count=1: no, count=2: yes, count=3: no, ...
 	if petal_pick_count % 2 == 0:
-		base_text = "yes "
+		return "yes"
 	else:
-		base_text = "no "
-	
-	repeat_count = int(petal_pick_count / 2) + 1
-	
-	var result = ""
-	for i in range(repeat_count):
-		result += base_text
-	
-	return result
+		return "no"
 
 ## 根据摘除数量更新info文本
 func _update_info_text(pick_num: int):
