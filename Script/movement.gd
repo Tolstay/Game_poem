@@ -22,6 +22,13 @@ var target_position: Vector2 = Vector2.ZERO
 var gameover: bool = false  # 游戏结束状态，禁用移动跟随
 @export var enable_zoom_out_on_gameover: bool = true # 控制游戏结束时是否启用缩放拉远效果
 
+# 开场倒计时锁定控制
+@export_group("Startup Countdown", "countdown_")
+@export var countdown_enabled: bool = true  # 是否启用开场倒计时
+@export var countdown_duration: float = 10.0  # 倒计时时长（秒）
+var countdown_timer: Timer  # 倒计时计时器
+var is_countdown_locked: bool = false  # 倒计时锁定状态
+
 # 缩放拉远相关变量
 var zoom_out_tween: Tween
 var camera_node: Camera2D
@@ -33,6 +40,32 @@ var target_zoom_level: float = 0.3  # 目标缩放级别（更小的值=更远�
 var movement_bounds: Rect2 = Rect2()  # 移动边界
 var bounds_enabled: bool = false  # 是否启用边界限制
 
+func _ready():
+	print("🚀 [Movement] 移动控制器初始化")
+	
+	# 如果启用倒计时，设置倒计时锁定
+	if countdown_enabled:
+		_setup_countdown_timer()
+
+## 设置开场倒计时
+func _setup_countdown_timer():
+	is_countdown_locked = true
+	print("⏱️ [Movement] 开场倒计时锁定已启用，时长: %.1f秒" % countdown_duration)
+	
+	# 创建倒计时器
+	countdown_timer = Timer.new()
+	countdown_timer.wait_time = countdown_duration
+	countdown_timer.one_shot = true
+	countdown_timer.timeout.connect(_on_countdown_finished)
+	add_child(countdown_timer)
+	
+	# 启动倒计时
+	countdown_timer.start()
+
+## 倒计时结束回调
+func _on_countdown_finished():
+	is_countdown_locked = false
+	print("🔓 [Movement] 开场倒计时结束，移动控制已解锁")
 
 func _physics_process(delta):
 	# 如果游戏结束，根据设置选择行为
@@ -64,6 +97,10 @@ func _handle_input():
 	
 	# 如果游戏结束，不处理任何输入
 	if gameover:
+		return
+	
+	# 如果倒计时锁定中，不处理任何输入
+	if is_countdown_locked:
 		return
 	
 	# 鼠标跟随逻辑
@@ -133,6 +170,24 @@ func set_gameover(state: bool):
 ## 获取游戏结束状态（供外部调用）
 func is_gameover() -> bool:
 	return gameover
+
+## 获取倒计时锁定状态（供外部调用）
+func get_countdown_locked_status() -> bool:
+	return is_countdown_locked
+
+## 手动解锁倒计时（供外部调用）
+func unlock_countdown():
+	if is_countdown_locked and countdown_timer:
+		countdown_timer.timeout.emit()  # 直接触发倒计时结束
+		print("🔓 [Movement] 倒计时已被手动解锁")
+
+## 重新开始倒计时（供外部调用）
+func restart_countdown():
+	if countdown_enabled:
+		if countdown_timer:
+			countdown_timer.queue_free()
+		_setup_countdown_timer()
+		print("⏱️ [Movement] 倒计时已重新开始")
 
 ## 连接SignalBus信号（延迟连接）
 func _connect_signalbus_if_needed():
