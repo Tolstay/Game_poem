@@ -113,6 +113,18 @@ theme_override_colors/font_color = Color(1, 0, 1, 1)
 theme_override_fonts/font = ExtResource("11_rxihw")
 theme_override_font_sizes/font_size = 10
 
+[node name="HUD" type="Label" parent="SubViewportContainer/SubViewport/Movement/Camera2D"]
+unique_name_in_owner = true
+z_index = 100
+texture_filter = 1
+offset_top = 55.0
+offset_right = 40.0
+offset_bottom = 78.0
+theme_override_colors/font_color = Color(1, 0, 1, 1)
+theme_override_fonts/font = ExtResource("11_rxihw")
+theme_override_font_sizes/font_size = 10
+text = "位置"
+
 [node name="opening" type="ColorRect" parent="SubViewportContainer/SubViewport/Movement"]
 z_index = 99
 offset_left = -150.0
