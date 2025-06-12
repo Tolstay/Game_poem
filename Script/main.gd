@@ -26,7 +26,7 @@ const PETAL_SCENE = preload("res://Scence/petal.tscn")
 
 # 鼠标静止检测参数
 @export_group("Mouse Detection", "mouse_")
-@export var mouse_still_time: float = 2.0  # 鼠标静止多少秒后触发
+@export var mouse_still_time: float = 0.1  # 鼠标静止多少秒后触发
 
 # 背景音乐控制参数
 @export_group("Background Music", "bgm_")

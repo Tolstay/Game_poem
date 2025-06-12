@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=24 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
 [ext_resource type="Script" uid="uid://23uc0ufxq2kx" path="res://Script/main.gd" id="1_k2005"]
@@ -13,7 +13,9 @@
 [ext_resource type="Script" uid="uid://co3wmie466xep" path="res://Script/signalbus.gd" id="10_xpfmo"]
 [ext_resource type="FontFile" uid="uid://sylpq76gfxru" path="res://fonts/Pixelify_Sans/static/PixelifySans-Bold.ttf" id="11_rxihw"]
 [ext_resource type="AudioStream" uid="uid://c0qyan1x2ndtk" path="res://Sound/windrises.wav" id="12_01llu"]
+[ext_resource type="FontFile" uid="uid://ccsexts6p7q8c" path="res://fonts/Pixelify_Sans/static/PixelifySans-Regular.ttf" id="12_pbrmh"]
 [ext_resource type="Script" uid="uid://dcshdjw8jnxlf" path="res://Scence/opening.gd" id="12_rxihw"]
+[ext_resource type="Script" uid="uid://ppq1vaev2qwa" path="res://Script/hud.gd" id="12_t5lff"]
 [ext_resource type="AudioStream" uid="uid://xd6njoxuguf8" path="res://Sound/night-ambience.mp3" id="13_alkcg"]
 [ext_resource type="Script" uid="uid://cl0855todhx5u" path="res://Script/wind_manager.gd" id="14_yjbia"]
 [ext_resource type="AudioStream" uid="uid://drosku7ykeacp" path="res://Sound/ending.mp3" id="16_rxihw"]
@@ -107,23 +109,29 @@ zoom_speed = 0.01
 unique_name_in_owner = true
 z_index = 100
 texture_filter = 1
+offset_top = -7.0
 offset_right = 40.0
-offset_bottom = 23.0
+offset_bottom = 16.0
 theme_override_colors/font_color = Color(1, 0, 1, 1)
+theme_override_constants/line_spacing = 1
 theme_override_fonts/font = ExtResource("11_rxihw")
 theme_override_font_sizes/font_size = 10
 
 [node name="HUD" type="Label" parent="SubViewportContainer/SubViewport/Movement/Camera2D"]
 unique_name_in_owner = true
-z_index = 100
+z_index = 98
 texture_filter = 1
-offset_top = 55.0
-offset_right = 40.0
-offset_bottom = 78.0
-theme_override_colors/font_color = Color(1, 0, 1, 1)
-theme_override_fonts/font = ExtResource("11_rxihw")
+anchors_preset = -1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 48.0
+offset_top = 78.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("12_pbrmh")
 theme_override_font_sizes/font_size = 10
-text = "位置"
+script = ExtResource("12_t5lff")
 
 [node name="opening" type="ColorRect" parent="SubViewportContainer/SubViewport/Movement"]
 z_index = 99
@@ -142,7 +150,7 @@ script = ExtResource("10_xpfmo")
 
 [node name="StillThreshold" type="Timer" parent="Timers"]
 unique_name_in_owner = true
-wait_time = 3.5
+wait_time = 4.0
 one_shot = true
 
 [node name="Windrises" type="Timer" parent="Timers"]

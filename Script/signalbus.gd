@@ -7,6 +7,8 @@ signal fruit_picked_now
 signal fade_in_now
 signal disable_pickoff_interaction
 signal able_pickoff_interaction
+# 新增：HUD更新信号
+signal hud_update_requested(pick_count: int, wind_count: int)
 
 # 风抖动信号（由wind_manager连接和使用，在静止超时时触发）
 # 注意：这些信号当前未被使用，暂时注释掉
@@ -27,6 +29,8 @@ var heart_coordinate: Vector2 = Vector2.ZERO  # Heart坐标（永不移除）
 # 花瓣摘除计数系统
 var petal_pick_count: int = 0
 var pick_number: int = 0
+var fruit_pick_count: int = 0
+var wind_count: int = 0
 var first_wind = true
 var first_pick = true
 var show_text = false
@@ -38,7 +42,6 @@ var gameover = false
 @onready var curtain: ColorRect = %Curtain
 @onready var info: Label = %Info
 @onready var ending: AudioStreamPlayer = %ending
-
 
 # 打字机效果相关变量（与textdisplay.gd保持一致的速率）
 var typing_speed: float = 0.05  # 每个字符的显示间隔（秒）
@@ -67,6 +70,9 @@ func _ready():
 	# 创建打字机计时器
 	_setup_typing_timer()
 	await get_tree().create_timer(0.5).timeout
+	
+	# 新增：初始化HUD显示
+	_update_hud_display()
 	
 	info.add_theme_font_size_override("font_size", 10)
 	_start_typing_effect("Recall a decision that\nyou've been putting off")
@@ -143,6 +149,13 @@ func _stop_all_timers():
 
 ## windrises计时器超时处理
 func _on_windrises_timeout():
+	# 新增：增加wind计数
+	wind_count += 1
+	print("💨 [SignalBus] Wind次数: ", wind_count)
+	
+	# 更新HUD显示
+	_update_hud_display()
+	
 	if first_wind == true:
 		first_wind = false
 		print("第一阵风过了")
@@ -150,10 +163,23 @@ func _on_windrises_timeout():
 	
 	fade_in_now.emit()
 
+## 新增：更新HUD显示的方法
+func _update_hud_display():
+	var total_picks = petal_pick_count + fruit_pick_count
+	hud_update_requested.emit(total_picks, wind_count)
+	print("📊 [SignalBus] HUD更新 - pick: %d, wind: %d" % [total_picks, wind_count])
+
 ## 当接收到fruit_picked信号时的处理方法
 func _on_fruit_picked():
 	fruit_picked_now.emit()
-
+	
+	# 新增：增加fruit摘除计数
+	fruit_pick_count += 1
+	pick_number += 1
+	print("🍎 [SignalBus] Fruit摘除 - fruit总数: ", fruit_pick_count, " 总摘除数: ", pick_number)
+	
+	# 更新HUD显示
+	_update_hud_display()
 
 func _on_still_threshold_timeout() -> void:
 	disable_pickoff_interaction.emit()  # 发出禁用pickoff交互信号,需要手动连接
@@ -174,7 +200,8 @@ func on_petal_picked():
 	var remaining_petals = _check_remaining_petals()
 	print("🌸 [SignalBus] 花瓣摘除 - 已摘: ", pick_number, " 剩余: ", remaining_petals)
 	
-	
+	# 更新HUD显示
+	_update_hud_display()
 	
 	# 根据摘除数量更新info文本
 	_update_info_text(pick_number)
@@ -190,7 +217,7 @@ func on_petal_picked():
 		await get_tree().create_timer(7.0).timeout
 		_start_backspace_effect()
 		await get_tree().create_timer(2.5).timeout
-		info.add_theme_font_size_override("font_size", 20)
+		info.add_theme_font_size_override("font_size", 23)
 		_start_typing_effect("Game Over")
 
 
@@ -619,3 +646,21 @@ func get_all_coordinates() -> Array[Vector2]:
 ## 获取Heart坐标（供外部调用）
 func get_heart_coordinate() -> Vector2:
 	return heart_coordinate
+
+## 获取当前pick和wind计数（供调试使用）
+func get_total_pick_count() -> int:
+	return petal_pick_count + fruit_pick_count
+
+func get_current_wind_count() -> int:
+	return wind_count
+
+func get_current_petal_count() -> int:
+	return petal_pick_count
+
+func get_current_fruit_pick_count() -> int:
+	return fruit_pick_count
+
+## 测试HUD更新（供调试使用）
+func test_hud_update():
+	print("🧪 [SignalBus] 测试HUD更新")
+	_update_hud_display()
