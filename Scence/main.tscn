@@ -27,7 +27,7 @@ point_count = 3
 
 [sub_resource type="Curve" id="Curve_alkcg"]
 _limits = [2.0, 10.0, 1.0, 20.0]
-_data = [Vector2(1, 2), 0.0, 0.0, 0, 0, Vector2(3, 4), 0.0, 0.0, 0, 0, Vector2(20, 10), 0.0, 0.0, 0, 0]
+_data = [Vector2(1, 2), 0.0, 0.0, 0, 0, Vector2(3, 6), 0.0, 0.0, 0, 0, Vector2(20, 10), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="Resource" id="Resource_xpfmo"]
@@ -169,8 +169,12 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 48.0
-offset_top = 78.0
+offset_left = 118.0
+offset_top = 79.0
+offset_right = 119.0
+offset_bottom = 92.0
+grow_horizontal = 0
+grow_vertical = 0
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_fonts/font = ExtResource("12_pbrmh")
 theme_override_font_sizes/font_size = 10
@@ -193,7 +197,7 @@ script = ExtResource("10_xpfmo")
 
 [node name="StillThreshold" type="Timer" parent="Timers"]
 unique_name_in_owner = true
-wait_time = 4.0
+wait_time = 3.0
 one_shot = true
 
 [node name="Windrises" type="Timer" parent="Timers"]

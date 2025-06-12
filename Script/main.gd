@@ -44,6 +44,7 @@ var petal_positions: Array[Vector2] = []  # 记录所有petal的原始位置
 
 # 生成控制参数
 @export_group("Generation Control", "gen_")
+@export var space_generation_enabled: bool = false  # 空格键生成功能开关（默认禁用）
 @export var default_trunk_count: int = 1  # 默认trunk生成数量
 @export var default_branch_decoration_count: int = 1  # 默认branch装饰组生成数量
 
@@ -77,7 +78,7 @@ func _input(_event):
 		return
 		
 	# 响应generate输入映射（空格键：协调生成trunk和branch装饰）
-	if Input.is_action_just_pressed("generate"):
+	if Input.is_action_just_pressed("generate") and space_generation_enabled:
 		_execute_coordinated_generation()
 
 ## 执行协调生成（trunk组 + branch装饰组）
@@ -249,7 +250,15 @@ func _generate_decorations_at_points(point_indices: Array[int]):
 		# 生成fruit
 		if fruits_node.has_method("generate_fruit_at_point"):
 			fruits_node.generate_fruit_at_point(point_index)
-		
+
+## 设置空格键生成功能开关（供外部调用）
+func set_space_generation_enabled(enabled: bool):
+	space_generation_enabled = enabled
+	print("🎮 [Main] 空格键生成功能已", "启用" if enabled else "禁用")
+
+## 获取空格键生成功能状态（供外部调用）
+func is_space_generation_enabled() -> bool:
+	return space_generation_enabled
 
 
 # ==================== 现有代码保持不变 ====================
