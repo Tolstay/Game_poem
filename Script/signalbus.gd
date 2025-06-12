@@ -90,7 +90,7 @@ func _ready():
 	if first_pick == false:
 		return
 	await get_tree().create_timer(1.5).timeout
-	_start_typing_effect("long press to pick things")
+	_start_typing_effect("Keep pressed to pluck")
 	
 func emit_disable_signal():
 	disable_pickoff_interaction.emit()
@@ -122,6 +122,11 @@ func _connect_pickoff_signals_recursive(node: Node):
 
 ## 当鼠标停止移动时的处理
 func _on_mouse_stopped_moving():
+	# 检查gameover状态，如果已经结束游戏则不处理鼠标停止事件
+	if gameover:
+		print("🛑 [SignalBus] Gameover状态：跳过鼠标停止移动处理")
+		return
+	
 	if first_pick:
 		return
 		
@@ -150,6 +155,11 @@ func _stop_all_timers():
 
 ## windrises计时器超时处理
 func _on_windrises_timeout():
+	# 检查gameover状态，如果已经结束游戏则不触发风效果
+	if gameover:
+		print("🛑 [SignalBus] Gameover状态：跳过windrises触发")
+		return
+	
 	# 新增：增加wind计数
 	wind_count += 1
 	print("💨 [SignalBus] Wind次数: ", wind_count)
@@ -183,6 +193,11 @@ func _on_fruit_picked():
 	_update_hud_display()
 
 func _on_still_threshold_timeout() -> void:
+	# 检查gameover状态，如果已经结束游戏则不触发风效果
+	if gameover:
+		print("🛑 [SignalBus] Gameover状态：跳过still_threshold触发")
+		return
+		
 	disable_pickoff_interaction.emit()  # 发出禁用pickoff交互信号,需要手动连接
 	fading = true
 	windrises_timer.start()
@@ -211,6 +226,10 @@ func on_petal_picked():
 		gameover = true
 		print("gameover为true")
 		set_global_gameover(true)
+		
+		# 立即停止所有计时器，防止在gameover状态下触发风效果
+		_stop_all_timers()
+		print("🛑 [SignalBus] Gameover状态：已停止所有计时器")
 		
 		# 发送HUD销毁信号
 		hud_destroy_requested.emit()
@@ -250,7 +269,8 @@ func _update_info_text(pick_num: int):
 				_start_backspace_effect()
 			first_pick = false
 			await get_tree().create_timer(3.0).timeout
-			_start_typing_effect("Hold still for the wind")
+			info.add_theme_font_size_override("font_size", 10)
+			_start_typing_effect("Stay still to summon wind")
 			show_text = true
 
 ## 开始打字机效果

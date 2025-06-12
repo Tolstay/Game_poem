@@ -5,7 +5,7 @@ func _ready():
 	
 	
 	# 设置字体样式
-	add_theme_font_size_override("font_size", 10)
+	add_theme_font_size_override("font_size", 8)
 
 	
 	# 设置对齐方式
@@ -31,7 +31,7 @@ func _connect_to_signalbus():
 		print("⚠️ [HUD] 未找到SignalBus或信号")
 
 func _on_hud_update_requested(pick_count: int, wind_count: int):
-	text = "picks %d, winds %d" % [pick_count, wind_count]
+	text = "%d plucked,%d winds" % [pick_count, wind_count]
 	print("📱 [HUD] 更新显示: picks %d, winds %d" % [pick_count, wind_count])
 
 func _on_hud_destroy_requested():
