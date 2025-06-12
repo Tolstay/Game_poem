@@ -9,11 +9,12 @@ signal disable_pickoff_interaction
 signal able_pickoff_interaction
 # 新增：HUD更新信号
 signal hud_update_requested(pick_count: int, wind_count: int)
+# 新增：HUD销毁信号
+signal hud_destroy_requested
 
 # 风抖动信号（由wind_manager连接和使用，在静止超时时触发）
-# 注意：这些信号当前未被使用，暂时注释掉
-# signal wind_shake_start(duration: float, intensity: float, frequency: float, horizontal_bias: float, randomness: float)
-# signal wind_shake_stop  # 风抖动停止信号
+signal wind_shake_start(duration: float, intensity: float, frequency: float, horizontal_bias: float, randomness: float)
+signal wind_shake_stop  # 风抖动停止信号
 
 # Fruit坐标管理
 signal fruit_generated(position: Vector2)
@@ -210,6 +211,10 @@ func on_petal_picked():
 		gameover = true
 		print("gameover为true")
 		set_global_gameover(true)
+		
+		# 发送HUD销毁信号
+		hud_destroy_requested.emit()
+		
 		_start_backspace_effect()
 		await get_tree().create_timer(3.0).timeout
 		_start_typing_effect("You've stepped out")
@@ -217,7 +222,7 @@ func on_petal_picked():
 		await get_tree().create_timer(7.0).timeout
 		_start_backspace_effect()
 		await get_tree().create_timer(2.5).timeout
-		info.add_theme_font_size_override("font_size", 23)
+		info.add_theme_font_size_override("font_size", 20)
 		_start_typing_effect("Game Over")
 
 

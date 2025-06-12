@@ -21,12 +21,19 @@ func _connect_to_signalbus():
 	
 	# 查找并连接signalbus
 	var signalbus = get_tree().get_first_node_in_group("signalbus")
-	if signalbus and signalbus.has_signal("hud_update_requested"):
-		signalbus.hud_update_requested.connect(_on_hud_update_requested)
+	if signalbus:
+		if signalbus.has_signal("hud_update_requested"):
+			signalbus.hud_update_requested.connect(_on_hud_update_requested)
+		if signalbus.has_signal("hud_destroy_requested"):
+			signalbus.hud_destroy_requested.connect(_on_hud_destroy_requested)
 		print("📱 [HUD] 已连接到SignalBus")
 	else:
 		print("⚠️ [HUD] 未找到SignalBus或信号")
 
 func _on_hud_update_requested(pick_count: int, wind_count: int):
 	text = "picks %d, winds %d" % [pick_count, wind_count]
-	print("📱 [HUD] 更新显示: pick %d, wind %d" % [pick_count, wind_count])
+	print("📱 [HUD] 更新显示: picks %d, winds %d" % [pick_count, wind_count])
+
+func _on_hud_destroy_requested():
+	print("💀 [HUD] 接收到销毁信号，正在销毁HUD")
+	queue_free()
