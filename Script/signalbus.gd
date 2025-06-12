@@ -215,6 +215,9 @@ func on_petal_picked():
 		# 发送HUD销毁信号
 		hud_destroy_requested.emit()
 		
+		# 新增：调用heart的ending动画
+		_play_heart_ending_animation()
+		
 		_start_backspace_effect()
 		await get_tree().create_timer(3.0).timeout
 		_start_typing_effect("You've stepped out")
@@ -669,3 +672,62 @@ func get_current_fruit_pick_count() -> int:
 func test_hud_update():
 	print("🧪 [SignalBus] 测试HUD更新")
 	_update_hud_display()
+
+## 播放heart的ending动画
+func _play_heart_ending_animation():
+	var heart_node = _find_heart_node()
+	if not heart_node:
+		print("⚠️ [SignalBus] 未找到Heart节点，无法播放ending动画")
+		return
+	
+	# 查找heart节点的endani动画组件
+	var endani_node = heart_node.find_child("endani", true, false)
+	if not endani_node:
+		print("⚠️ [SignalBus] 未找到Heart的endani动画组件")
+		return
+	
+	# 检查endani是否为AnimationPlayer类型并播放ending动画
+	if endani_node is AnimationPlayer:
+		if endani_node.has_animation("ending"):
+			endani_node.play("ending")
+			print("❤️ [SignalBus] 已播放Heart的ending动画")
+		else:
+			print("⚠️ [SignalBus] endani动画组件中未找到ending动画")
+	else:
+		print("⚠️ [SignalBus] endani节点不是AnimationPlayer类型")
+
+## 查找heart节点
+func _find_heart_node() -> Node:
+	var main_scene = get_tree().current_scene
+	
+	# 方法1: 通过Heart节点直接查找
+	var heart_node = main_scene.find_child("Heart", true, false)
+	if heart_node:
+		print("❤️ [SignalBus] 通过Heart节点找到: ", heart_node.name)
+		return heart_node
+	
+	# 方法2: 通过First_Point查找（假设Heart是First_Point的父节点或兄弟节点）
+	var first_point_node = main_scene.find_child("First_Point", true, false)
+	if first_point_node and first_point_node.get_parent():
+		var parent = first_point_node.get_parent()
+		# 检查父节点是否是Heart
+		if parent.name.to_lower().contains("heart"):
+			print("❤️ [SignalBus] 通过First_Point的父节点找到Heart: ", parent.name)
+			return parent
+		
+		# 检查兄弟节点中是否有Heart
+		for sibling in parent.get_children():
+			if sibling.name.to_lower().contains("heart"):
+				print("❤️ [SignalBus] 通过First_Point的兄弟节点找到Heart: ", sibling.name)
+				return sibling
+	
+	# 方法3: 在Fruits节点下查找
+	var fruits_node = main_scene.find_child("Fruits", true, false)
+	if fruits_node:
+		for child in fruits_node.get_children():
+			if child.name.to_lower().contains("heart"):
+				print("❤️ [SignalBus] 在Fruits节点下找到Heart: ", child.name)
+				return child
+	
+	print("⚠️ [SignalBus] 所有方法都未找到Heart节点")
+	return null

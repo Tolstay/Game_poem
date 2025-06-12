@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://b6ahd23a66ulq"]
+[gd_scene load_steps=27 format=3 uid="uid://b6ahd23a66ulq"]
 
 [ext_resource type="Script" uid="uid://6igsgibn7nji" path="res://Script/fruits.gd" id="1_cqepb"]
 [ext_resource type="Script" uid="uid://23uc0ufxq2kx" path="res://Script/main.gd" id="1_k2005"]
@@ -40,6 +40,43 @@ metadata/_custom_type_script = "uid://cqqc7s7kp8uem"
 [sub_resource type="AtlasTexture" id="AtlasTexture_k2005"]
 atlas = ExtResource("8_01llu")
 region = Rect2(71, 23, 131, 131)
+
+[sub_resource type="Animation" id="Animation_pbrmh"]
+resource_name = "ending"
+length = 3.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1e-05, 1e-05)]
+}
+
+[sub_resource type="Animation" id="Animation_285g0"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_2fym8"]
+_data = {
+&"RESET": SubResource("Animation_285g0"),
+&"ending": SubResource("Animation_pbrmh")
+}
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_k2005")
@@ -96,6 +133,11 @@ position = Vector2(579, 324)
 [node name="Heart" type="Sprite2D" parent="SubViewportContainer/SubViewport/Fruits/First_Point"]
 texture = SubResource("AtlasTexture_k2005")
 
+[node name="endani" type="AnimationPlayer" parent="SubViewportContainer/SubViewport/Fruits/First_Point/Heart"]
+libraries = {
+&"": SubResource("AnimationLibrary_2fym8")
+}
+
 [node name="BranchGenerator" parent="SubViewportContainer/SubViewport/Fruits" instance=ExtResource("2_branch_gen")]
 unique_name_in_owner = true
 
@@ -121,7 +163,7 @@ theme_override_font_sizes/font_size = 10
 unique_name_in_owner = true
 z_index = 98
 texture_filter = 1
-anchors_preset = -1
+anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
